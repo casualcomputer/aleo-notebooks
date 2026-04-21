@@ -1,0 +1,15 @@
+{
+  "name": "aleo-external-signing",
+  "version": "1.0.0",
+  "description": "External signing + Delegated Proving Service tutorial for Aleo",
+  "main": "external-signing.mjs",
+  "type": "module",
+  "scripts": {
+    "gen-account": "node gen-account.mjs",
+    "start": "node external-signing.mjs"
+  },
+  "dependencies": {
+    "@provablehq/sdk": "^0.10.2",
+    "dotenv": "^17.4.2"
+  }
+}

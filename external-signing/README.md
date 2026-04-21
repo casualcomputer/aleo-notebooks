@@ -22,7 +22,21 @@ No end-to-end walkthrough composing these with DPS existed, so here's one.
 
 ---
 
-## Flow
+## What the tutorial runs, step by step
+
+1. **Reads a throwaway private key from `.env`.** This stands in for a key stored inside a wallet extension (e.g. Shield). It's a testnet burner, not a real user key. In production the dApp's `.env` has **no** private key — the wallet does.
+
+2. **Creates an `ExternalSigningWallet` object** ([`wallet.mjs`](wallet.mjs)). The key goes into a `#private` field. Nothing else in the program can read it. Treat this object as "the wallet running in-process" — a stand-in for Shield until Shield ships the matching method.
+
+3. **The dApp asks the wallet to sign a transition** (`credits.aleo/transfer_public`). The wallet runs `ExecutionRequest.sign(privateKey, …)` internally and returns four strings: `{signature, tvk, signer, skTag}`. Those four strings are the **only** thing the wallet exposes; the key never leaves.
+
+4. **The dApp assembles an `ExecutionRequest`** from those four strings via `buildExecutionRequestFromExternallySignedData(...)`.
+
+5. **The dApp wraps the `ExecutionRequest` into a `ProvingRequest`** via `programManager.provingRequest({ executionRequest })`. The `ProgramManager` has no account set — the dApp code path literally cannot read a private key even if it wanted to.
+
+6. **The dApp POSTs the `ProvingRequest` to DPS** via `submitProvingRequestSafe`. DPS proves the SNARK remotely and returns the completed transaction. With `broadcast: false` (the default) it comes back but isn't submitted to the chain; with `broadcast: true` DPS also broadcasts.
+
+### Flow diagram
 
 ```
 wallet (holds pk)                      dApp (no pk)                      DPS
@@ -37,7 +51,20 @@ wallet (holds pk)                      dApp (no pk)                      DPS
         │                                    │◄─── { transaction, broadcast_result }─┤
 ```
 
-The dApp never constructs an `Account` from the user's private key. The simulated wallet in `wallet.mjs` is the only component that ever holds it.
+### Tutorial vs. production mapping
+
+Shield (or any self-custodial browser wallet) would replace the in-process `ExternalSigningWallet` with a cross-process call. The rest of the flow is unchanged:
+
+| In this tutorial                        | In production with Shield                              |
+|-----------------------------------------|--------------------------------------------------------|
+| `.env` holds `TESTNET_PRIVATE_KEY`      | Shield's extension holds the key in browser storage    |
+| `new ExternalSigningWallet(pk)`         | `window.shield` injected by the extension              |
+| `wallet.signTransition({...})`          | `await window.shield.signTransition({...})`            |
+| dApp process can read the `.env` value  | dApp has no access — it only receives the four fields  |
+
+The bytes sent to DPS are identical in both cases. Only the trust boundary around the key differs.
+
+**The catch — `window.shield.signTransition` does not exist yet.** Shield's deployed methods (verified in the [live demo](https://aleo-dev-toolkit-react-app.vercel.app/sign) bundle) are `connect / disconnect / signMessage / decrypt / executeTransaction / requestTransaction / transactionStatus / switchNetwork / requestRecords / executeDeployment`. None of them return `{signature, tvk, signer, skTag}`. Until Shield ships a sign-without-proving method, this architecture can't be wired to Shield directly — the `.env`-based stand-in is the only way to exercise the SDK's external-signing primitives end-to-end today. The [`wallet.mjs`](wallet.mjs) class in this tutorial (~12 lines) is the reference implementation of what Shield would run inside its extension.
 
 ---
 

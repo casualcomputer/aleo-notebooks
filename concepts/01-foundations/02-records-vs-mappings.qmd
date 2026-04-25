@@ -1,0 +1,42 @@
+---
+title: "Records vs mappings"
+subtitle: "Aleo has two kinds of state. Picking the wrong one leaks privacy."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+You're modeling user balances on Aleo. Should each balance be a `record`
+(private, UTXO-style) or an entry in a `mapping` (public, account-style)?
+
+This is the **single most consequential design decision** in any Aleo dApp.
+Pick wrong and your "private app" is fully transparent.
+
+## What this chapter will cover
+
+- The mental model: **records ≈ Bitcoin UTXOs**, **mappings ≈ Solidity mappings**
+- Why Aleo has both (and why most chains pick only one)
+- The consume-and-produce pattern: why passing a record into a function "spends" it
+- Concrete examples from `credits.aleo` showing both:
+  - `transfer_public(addr, u64)` — touches a public mapping
+  - `transfer_private(input: credits, ...)` — consumes a record, produces new ones
+- The 4 transfer-bridge patterns: public→public, private→private, public↔private
+
+## Interactive viz planned
+
+A side-by-side simulator: same dataset, two visualizations.
+
+- **Left**: shown as a public mapping (you watch every entry update on every tx)
+- **Right**: shown as private records (only the owner sees their own state)
+
+Press "send 100 credits from Alice to Bob" and watch what each model leaks.
+
+## Why this matters
+
+Devs coming from EVM reflexively reach for `mapping`. Devs coming from Bitcoin
+reflexively reach for `record`. Aleo's privacy story works only when you mix
+them deliberately — public for what observers should see, private for what they
+shouldn't.

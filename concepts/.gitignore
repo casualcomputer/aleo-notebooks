@@ -1,0 +1,33 @@
+# Quarto build artifacts
+_site/
+_freeze/
+.quarto/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# LaTeX intermediates (PDF rendering)
+*.aux
+*.log
+*.out
+*.tex
+!book.tex
+
+# Python (if Jupyter chapters are used)
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Node (if any JS preprocessing)
+node_modules/
+
+/.quarto/
+**/*.quarto_ipynb

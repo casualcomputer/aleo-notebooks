@@ -1,0 +1,118 @@
+---
+title: "Welcome"
+---
+
+# Aleo, Visualized
+
+> An interactive guide to privacy on Aleo — for developers who want to
+> **understand**, not memorize.
+
+Most blockchain books are walls of definitions. This one is a sequence of
+**questions** — the kind a smart engineer would actually ask when handed
+their first Aleo project — paired with **interactive visualizations** that
+let you see the answer rather than just read it.
+
+If you can drag a slider, you can understand a Merkle proof.
+
+---
+
+## Who this is for
+
+| You are... | This book gives you... |
+|------------|------------------------|
+| **A web2 / data engineer** new to web3 | Familiar mental models (UTXOs ≈ encrypted DB rows, Merkle roots ≈ content hashes) without crypto-bro vocabulary |
+| **A Solidity / EVM developer** new to Aleo | Side-by-side comparisons (`record` vs ERC-20, `mapping` vs Solidity mapping, `transfer_*` family) |
+| **A founder / PM scoping a privacy app** | Decision frameworks: what goes on-chain, what stays off-chain, what compliance looks like in a ZK world |
+| **An auditor / security reviewer** | Anti-patterns that leak privacy, and the proof obligations the chain enforces |
+
+You don't need to know zero-knowledge cryptography. You will after.
+
+---
+
+## How this book is structured
+
+Every chapter follows the same shape:
+
+1. **The question** — a concrete problem an engineer faces ("how do I prove a user isn't on a sanctions list without revealing the list?")
+2. **The Aleo answer** — the primitive(s) Aleo offers, and why
+3. **The visualization** — an interactive widget where you can poke at the system and watch it respond
+4. **The implementation** — what the actual deployed code looks like, with citations to mainnet bytecode
+
+When you finish a chapter, you should be able to **explain it to a colleague using only your own words and a whiteboard**. If you can't, that chapter failed and please open an issue.
+
+---
+
+## What's covered
+
+::: {.callout-note}
+This is an early-access book. New chapters land every two weeks. Subscribe to
+the newsletter (link in footer) to get notified when each ships.
+:::
+
+### Foundations
+
+- [Why ZK?](01-foundations/01-why-zk.qmd) — what privacy chains actually buy you
+- [Records vs Mappings](01-foundations/02-records-vs-mappings.qmd) — Aleo's UTXO/account hybrid
+- [Fields and curves](01-foundations/03-fields-and-curves.qmd) — what `field` actually is
+
+### Cryptographic primitives
+
+- [Hash functions](02-cryptographic-primitives/01-hashes.qmd) — BHP, Poseidon, why ZK-friendly matters
+- [**Merkle trees** ✨](02-cryptographic-primitives/02-merkle-trees.qmd) — the killer chapter; non-inclusion proofs visualized
+- [Commitments](02-cryptographic-primitives/03-commitments.qmd) — commit-reveal in pictures
+
+### Privacy patterns
+
+- [On-chain commitment + off-chain encrypted blob](03-privacy-patterns/01-on-chain-vs-off-chain.qmd) — the data-split decision
+- [View-key disclosure topology](03-privacy-patterns/02-view-key-disclosure.qmd) — selective decryption
+- [Burner wallets](03-privacy-patterns/03-burner-wallets.qmd) — the privacy shield UX pattern
+
+### Real systems on mainnet
+
+- [`credits.aleo`](04-real-systems/01-credits-aleo.qmd) — the native token, walked through line by line
+- [`token_registry.aleo`](04-real-systems/02-token-registry.qmd) — multi-token standard with the live token table
+- [USDCx and the freeze list](04-real-systems/03-usdcx-compliance.qmd) — compliance without surveillance
+- [NullPay walkthrough](04-real-systems/04-nullpay-walkthrough.qmd) — a real privacy-payments dApp dissected
+
+### Build it
+
+- [Leo quickstart](05-build-it/01-leo-quickstart.qmd) — install, hello world, deploy
+- [Your first program](05-build-it/02-first-program.qmd) — interactively edit Leo, watch it compile
+- [Deploy walkthrough](05-build-it/03-deploy-walkthrough.qmd) — testnet → mainnet, the right way
+
+---
+
+## Why this book exists
+
+Aleo is one of the most thoughtfully-designed privacy chains in production, but
+its mental model is unlike anything in EVM-land. Records are consumed.
+Mappings are public. Hashes are circuit-friendly. Compliance is a Merkle
+tree on the chain and a database off it. None of this is hard once you've
+seen it work — but until you do, it's just words.
+
+This book is the visual companion I wish existed when I started building on
+Aleo.
+
+---
+
+## How to read this
+
+You can read straight through (recommended for first-timers) or jump to a
+chapter — every chapter is self-contained. Each one has:
+
+- **Inputs you can change** (sliders, text boxes, dropdowns)
+- **Live diagrams** that update as you change inputs
+- **Verified mainnet citations** — every claim about deployed Aleo programs
+  is paired with a `curl`-able endpoint so you can check the bytecode yourself
+
+If you want a paired AI-assistant for building on Aleo, check out
+[`aleo-skills`](https://github.com/casualcomputer/aleo-skills) — a Claude Code
+plugin and AI dev reference that pairs with this book.
+
+---
+
+## Status
+
+🟢 **v0.1 — soft launch.** First two chapters live. Newsletter open.
+The "✨" chapter ([Merkle trees](02-cryptographic-primitives/02-merkle-trees.qmd))
+is the flagship — start there if you only have 15 minutes.

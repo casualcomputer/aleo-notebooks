@@ -1,0 +1,41 @@
+---
+title: "View-key disclosure topology"
+subtitle: "Selective decryption: who can read what, and how Aleo enforces it."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Two parties need to read an encrypted invoice. Add a tax auditor — now three
+parties. Add the auditor's deputy — four. How do you grant decryption access
+to a specific subset of users without re-encrypting the data each time?
+
+## What this chapter will cover
+
+- Aleo's view-key model: every address has an associated view key (32 bytes)
+  that decrypts records owned by that address
+- Wrapping a symmetric key K under N view keys → N parties can independently
+  unwrap K and decrypt
+- The "wrap once, append later" pattern: adding an auditor after the fact
+  doesn't require re-encryption
+- Why view keys cannot be revoked (and what to do if you need revocability:
+  proxy re-encryption, threshold encryption — out of scope here)
+- The off-chain "wrapped key vault": where the wrapped keys live and who
+  can read them
+
+## Interactive viz planned
+
+A graph viz: nodes are parties (payer, merchant, auditor, observer), edges
+represent "can decrypt this blob." Toggle parties on/off. Watch what becomes
+visible to each party.
+
+## Common anti-patterns
+
+- Storing wrapped keys keyed by **address** in a public DB (re-leaks
+  participant identity)
+- Using non-AEAD encryption for the blob (allows undetectable corruption)
+- Wrapping under the address itself (addresses don't have decryption capability;
+  view keys do)

@@ -1,0 +1,41 @@
+---
+title: "Hash functions"
+subtitle: "Why Aleo programs use BHP and Poseidon, not SHA-256."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+In normal software, you reach for SHA-256 or Keccak when you need a hash.
+In Leo, the canonical choice is `BHP256` or `Poseidon4`. Why? Are SHA-256
+and Keccak even available?
+
+## What this chapter will cover
+
+- The "ZK-friendly hash" concept: why hash choice matters when the hash is computed *inside a ZK proof*
+- Cost comparison: number of circuit constraints for each hash
+  - SHA-256: ~25,000 constraints per block
+  - Keccak: ~150,000 constraints per block
+  - Poseidon4: ~200 constraints per hash
+  - BHP256: ~1,000 constraints
+- Aleo's full hash menu: BHP, Pedersen, Poseidon (×3 variants), SHA-3, Keccak
+- When to use which:
+  - Hashing addresses → BHP256
+  - Inside a Merkle tree → Poseidon4
+  - Compatibility with EVM signatures → Keccak256
+  - Standardization or external verification → SHA-3
+
+## Interactive viz planned
+
+A bar chart: pick a hash, see the constraint cost as a stack of unit squares.
+Slider for input size. Compare 6 hash families side-by-side.
+
+## Why this matters
+
+Picking the wrong hash can 100× your transaction's proving time. The Merkle
+tree chapter you just (or about to) read uses Poseidon4 *because* it's so
+cheap inside a circuit. SHA-256 in the same role would make the proof
+generation impractical.

@@ -1,0 +1,35 @@
+---
+title: "Fields and curves"
+subtitle: "What `field` actually is, in 5 minutes."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+You see `field` everywhere in Leo source — function inputs, struct members,
+hash outputs. Documentation says it's "a finite field element." That's not
+a useful answer if you've never opened a number-theory textbook. What does
+it actually mean for someone shipping code?
+
+## What this chapter will cover
+
+- `field` ≈ "an integer between 0 and p-1, where p ≈ 2²⁵³"
+- Why operations are "mod p" and what that means for arithmetic
+- Why hash functions output `field`, not `u256`
+- Why ZK circuits prefer field arithmetic over byte/integer arithmetic
+- Cost difference: a Poseidon hash inside a circuit vs SHA-256
+
+## Interactive viz planned
+
+A "field calculator": pick two field elements, pick an operation
+(add, multiply, hash), see the result. Toggle between unsigned-integer mode
+and field mode to see where they differ (overflow → wraps mod p).
+
+## What you can skip
+
+If you're never going to write inline Leo code that does math directly, this
+chapter is optional. The TL;DR: when you see `field`, mentally substitute
+"big integer ~32 bytes, sometimes the output of a hash."

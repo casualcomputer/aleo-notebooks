@@ -1,0 +1,49 @@
+---
+title: "On-chain commitment + off-chain encrypted blob"
+subtitle: "The single most important architecture decision in any Aleo dApp."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Your app needs to store invoice details (line items, descriptions, attachments)
+that should be private. Where do they go?
+
+- On-chain in a record? Records are encrypted to *one owner only* — but
+  invoices have at least two parties.
+- On-chain in a public mapping? That defeats the purpose.
+- Off-chain in a regular database? But then how does the chain enforce
+  anything?
+
+The canonical answer is the **commitment + encrypted blob** pattern, and
+**every privacy app on Aleo eventually converges on it**.
+
+## What this chapter will cover
+
+- The pattern in 4 pieces:
+  1. Compute `commitment = BHP256(invoice_blob)` client-side
+  2. Store the commitment on-chain in a public mapping
+  3. Encrypt the full blob with a fresh symmetric key K
+  4. Wrap K under each authorized reader's view key, store off-chain
+- Why this beats the alternatives (decision matrix)
+- Where the encrypted blob can live: client-only, centralized DB, IPFS, on-chain — and the trade-offs
+- The selective-disclosure topology: payer + merchant + auditor
+- How to verify off-chain integrity by re-hashing the blob and comparing to the on-chain commitment
+
+## Interactive viz planned
+
+A flow diagram with toggles:
+- Switch the off-chain storage between {centralized DB, IPFS, client-only, on-chain encrypted}
+- Watch which trust assumptions appear/disappear
+- Watch which UX guarantees appear/disappear (queryability, censorship resistance, etc.)
+
+## What this unlocks
+
+Once you understand this pattern, the chapters on
+[NullPay's walkthrough](../04-real-systems/04-nullpay-walkthrough.qmd) and
+[USDCx compliance](../04-real-systems/03-usdcx-compliance.qmd) are just
+applications of the same idea — different blobs, different commitment
+schemes, different storage choices.

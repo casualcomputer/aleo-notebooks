@@ -1,0 +1,44 @@
+---
+title: "Commitments"
+subtitle: "Bind a value without revealing it. The other half of the privacy story."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Merkle proofs (the [previous chapter](02-merkle-trees.qmd)) prove a value is
+in a set. But how do you prove you committed to a value at time T₀, without
+revealing the value, AND prevent yourself from changing it at time T₁?
+
+This is the **commitment** problem. It's everywhere in privacy chains:
+sealed bids, anonymous voting, invoice hashes, vote counts.
+
+## What this chapter will cover
+
+- Hash commitments: `commit = hash(value, salt)`
+  - Why salt? Without it, the commitment is brute-forceable for low-entropy values
+- Pedersen commitments: `commit = a·G + b·H` (homomorphic — you can add commitments without opening them)
+- When to use which: hash for "I want to prove I knew X at T₀," Pedersen for "I want to prove sum-of-votes without revealing each vote"
+- Aleo's built-in commitment families: BHP, Pedersen
+- The on-chain commitment + off-chain encrypted blob pattern (already foreshadowed in `architecture-payments.md` if you came from `aleo-skills`)
+
+## Interactive viz planned
+
+A "commit-reveal" timeline:
+1. T₀: user picks a value, commitment is published
+2. T₁: someone tries to forge a different value with the same commitment
+3. The viz shows the cryptographic obstruction (collision-resistance)
+
+Plus a Pedersen homomorphism demo: two committed values, add the commitments,
+show that opening the sum equals the sum of the openings.
+
+## Real-world payoff
+
+NullPay (the example invoice app referenced throughout this book) uses
+commitments to bind invoice JSON to its on-chain row. Every privacy-payments
+app needs this primitive. Once you understand it, you can read NullPay's
+[`pay_invoice`](../04-real-systems/04-nullpay-walkthrough.qmd) and immediately
+see what's happening.

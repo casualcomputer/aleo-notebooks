@@ -1,0 +1,46 @@
+---
+title: "Leo quickstart"
+subtitle: "From zero to your first deployed program in under 30 minutes."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+You've read the theory. Now you want to actually deploy something. What's
+the shortest path from a fresh laptop to a Leo program live on Aleo testnet?
+
+## What this chapter will cover
+
+- Install: `cargo install leo-lang --locked` (Leo v4.0.x — pinned)
+- `leo new my_program` and the project layout
+- Your `.env`: NETWORK, ENDPOINT, PRIVATE_KEY (testnet only — never paste mainnet)
+- The faucet: <https://faucet.provable.com/>
+- `leo build` → `leo run` → `leo test` → `leo deploy`
+- The two flags that trip up everyone: `--broadcast` (required!) and `--priority-fees` (plural!)
+- Verifying deployment on aleoscan.io
+
+## Interactive viz planned
+
+A "first program" trace: paste Leo source, see it tokenize → parse → typecheck
+→ compile to AVM. (Possibly via WASM-compiled Leo running in the browser.)
+
+## Why this is short
+
+Most Leo "getting started" guides bury you in cryptographic preamble. This
+one assumes you read the previous 10 chapters and just want to type the
+right commands.
+
+## Companion: aleo-skills
+
+If you have Claude Code installed, just run:
+
+```
+/plugin install casualcomputer/aleo-skills
+```
+
+The plugin's always-on rules (`CLAUDE.md`) include the Leo CLI gotchas
+(`--broadcast`, `--priority-fees`, default to testnet, etc.) so you'll
+catch the common mistakes automatically.

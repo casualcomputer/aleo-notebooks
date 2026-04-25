@@ -1,0 +1,43 @@
+---
+title: "credits.aleo"
+subtitle: "The native ALEO token, walked through line by line."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Every Aleo dApp imports `credits.aleo` for fee payment, balance transfers,
+and as the canonical example of "how Aleo programs are written." But few
+developers have actually read its source. What does the deployed contract
+actually contain?
+
+## What this chapter will cover
+
+- All 7 transfer functions (`transfer_public`, `transfer_private`, the 4
+  bridges, etc.) walked through with diagrams
+- The `credits` record: what fields it has, why
+- The `account` mapping: what's public, what isn't
+- The `bond_public` / `unbond_public` / `claim_unbond_public` staking flow
+- Annotated bytecode: what each AVM instruction does in the compiled output
+- Side-by-side: source Leo on the left, AVM bytecode on the right, hover any
+  line to highlight the correspondence
+
+## Interactive viz planned
+
+The bytecode walker: pick a function, see the AVM instructions execute
+step-by-step against a sample input. Show the records consumed and produced
+at each step.
+
+## Why this matters
+
+`credits.aleo` is the **reference implementation** for every other Aleo token.
+Once you understand its 7 transfer variants, you understand:
+
+- ARC-20 token contracts via `token_registry.aleo`
+- Stablecoins (USDCx, USAD) — same shape, plus compliance hooks
+- Pondo's pALEO — built on top of credits
+
+This is the "read the standard library before writing your own" chapter.

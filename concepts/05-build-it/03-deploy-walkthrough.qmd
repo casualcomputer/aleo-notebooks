@@ -1,0 +1,63 @@
+---
+title: "Deploy walkthrough"
+subtitle: "Testnet → mainnet, the right way."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Your program compiles, your tests pass, you've run it locally. Now you want
+to deploy. What does the actual deploy command look like? What can go wrong?
+When are you ready for mainnet?
+
+## What this chapter will cover
+
+### Testnet deployment
+
+```bash
+leo deploy \
+  --network testnet \
+  --endpoint https://api.explorer.provable.com/v1 \
+  --priority-fees 100000 \
+  --broadcast
+```
+
+- Why `--broadcast` is required (and what happens silently if you forget)
+- Why `--priority-fees` is plural (and what happens if you set it to 0)
+- How to verify deployment on aleoscan in the next ~60 seconds
+- What "deployed but not visible" usually means (priority fee too low; resubmit)
+
+### Mainnet readiness checklist
+
+- ✅ Tests pass with `leo test --prove` (full proof generation, not just interpreter)
+- ✅ Cross-program tests pass with leo-bindings against `LocalVM`
+- ✅ Privacy review (see [Merkle trees](../02-cryptographic-primitives/02-merkle-trees.qmd) and the
+  privacy patterns chapters) — no public mappings keyed by user identity, etc.
+- ✅ Constructor decorator is correct: `@noupgrade` for immutable, `@admin(...)`
+  for governed, `@checksum(...)` for DAO-controlled
+- ✅ All imports resolve to mainnet program IDs (no `test_` prefix)
+- ✅ Audit (or at least a peer review) of the privacy invariants
+- ✅ DPS or external signing for proof generation if you have non-developer users
+
+### Mainnet deployment
+
+Same command, with `--network mainnet` and a higher priority fee. **Confirm
+twice before broadcasting** — there is no `leo undeploy`.
+
+## Interactive viz planned
+
+A "deployment dashboard" simulator:
+- Paste a `program.json` and a `main.leo`
+- Watch the simulator predict gas, fee, and broadcast outcome
+- See common error modes (program already exists, insufficient balance, fee too low) before you hit them on the real network
+
+## Companion
+
+This chapter's command structure is also encoded in the
+[aleo-skills](https://github.com/casualcomputer/aleo-skills) Claude Code
+plugin. If you `/plugin install casualcomputer/aleo-skills`, the always-on
+rules will warn you about `--broadcast` / `--priority-fees` automatically
+when you ask Claude to deploy.

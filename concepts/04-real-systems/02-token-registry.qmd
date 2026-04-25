@@ -1,0 +1,44 @@
+---
+title: "token_registry.aleo"
+subtitle: "Aleo's multi-token standard, with the live mainnet token table."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Ethereum has ERC-20: every token is its own contract. Aleo's `token_registry.aleo`
+takes a different approach — one contract hosts arbitrarily many tokens
+identified by a `token_id: field`. Why? What's the trade-off?
+
+## What this chapter will cover
+
+- The "registry vs standalone" decision: why some tokens (Pondo, Verulink-bridged) live in the registry while others (USDCx, USAD) are standalone
+- All 22 functions of `token_registry.aleo` mapped to their use cases
+- The `external_authorization_required` flag and the `prehook_*` extension point — how registry tokens add custom compliance without modifying the registry contract
+- The verified-live token table:
+
+| Symbol | token_id | Issuer | Notes |
+|--------|----------|--------|-------|
+| ALEO (Pondo pALEO) | `3443843...22344986field` | Pondo | Liquid-staked ALEO |
+| vUSDC | `6088188...25268775field` | Verulink | Bridged USDC |
+| vUSDT | `7311977...01831695field` | Verulink | Bridged USDT |
+| vETH | `1381601...51428034field` | Verulink | Bridged ETH |
+
+(All four token_ids verified live April 2026.)
+
+- The u128 ASCII-as-big-endian encoding of `name` and `symbol` (the surprising gotcha)
+- How to discover new registered tokens (no list-all endpoint exists; you scan `register_token` transitions)
+
+## Interactive viz planned
+
+A registry browser: pick a token_id from a dropdown, see its metadata, see a
+timeline of its mint/burn/transfer transitions, see its current supply.
+
+## Why this matters
+
+Most production privacy apps will eventually integrate **at least one**
+registry-hosted token. Once you understand the registry's API, supporting
+N tokens costs the same as supporting 1.

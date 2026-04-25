@@ -1,0 +1,59 @@
+---
+title: "NullPay walkthrough"
+subtitle: "A real privacy-payments dApp, dissected end-to-end."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+You've now read about all the primitives — records, mappings, commitments,
+view keys, Merkle proofs, the credit register, USDCx compliance. How do
+they compose into an actual product?
+
+[NullPay](https://github.com/casualcomputer/aleo-notebooks) is a working
+anonymous-invoice dApp on Aleo testnet/mainnet. Two Leo programs, ~14
+transitions, multi-currency support (credits + stablecoins), encrypted
+off-chain metadata in a Postgres-style backend, burner-wallet UX, optional
+auditor disclosure. Real code, real deployment.
+
+This chapter walks through every architectural decision in NullPay and
+explains why it was made.
+
+## What this chapter will cover
+
+- The 14 transitions, grouped by privacy class:
+  - `create_invoice_*` (one per currency)
+  - `pay_invoice_*` / `pay_donation_*`
+  - `settle_invoice`, `delete_invoice`, `get_invoice_status`
+- The on-chain commitment: BHP256 hash of the invoice JSON, stored in
+  `mapping invoices`
+- The off-chain encrypted store: AES-256-GCM in Supabase, keyed by commitment
+- The burner wallet: encrypted backup pattern stored on-chain
+- The oracle quote pattern: prices signed off-chain, verified on-chain
+- The MCP server (`@nullpay/mcp`): how NullPay exposes its API to AI agents
+- The compliance integration: USDCx compliance proofs flow through NullPay
+
+## Interactive viz planned
+
+A full transaction flow simulator: click "create invoice → pay invoice →
+settle" and watch every state change in:
+- The on-chain mapping (commitments → status)
+- Each consumed record (nullifiers ticking)
+- The off-chain Supabase blobs (which fields appear/decrypt for which party)
+- The Telegram notification fired to the merchant
+
+## Why this is the capstone chapter
+
+Every primitive you've read about appears here, in production code, doing
+real work. If you can finish this chapter and explain *why each design
+decision was made*, you can architect your own Aleo dApp.
+
+## Source code
+
+- Repo: [github.com/casualcomputer/aleo-experiments/tree/main/NullPay](https://github.com/casualcomputer/aleo-experiments/tree/main/NullPay)
+  *(or wherever it ends up — replace before publish)*
+- Live demo: [nullpay.app](https://nullpay.app) *(or wherever)*
+- Architecture docs: see the in-tree `docs/` folder

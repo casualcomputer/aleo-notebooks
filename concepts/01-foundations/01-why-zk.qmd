@@ -1,0 +1,32 @@
+---
+title: "Why ZK?"
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+You can encrypt your database. You can use TLS. You can put data behind an
+auth layer. **Why on earth do you need zero-knowledge proofs?**
+
+## What this chapter will cover
+
+- The three properties only ZK gives you: **privacy + verifiability + decentralization** simultaneously
+- Why you can't get those three with traditional crypto (you can get any two)
+- A side-by-side comparison: encrypted database vs Bitcoin UTXO vs Aleo records
+- The "compliance without surveillance" pattern (foreshadowing the
+  [Merkle trees](../02-cryptographic-primitives/02-merkle-trees.qmd) chapter)
+
+## Interactive viz planned
+
+A 3-axis comparison widget: pick two of {private, verifiable, decentralized}
+and see which traditional system gives you that pair, and why no traditional
+system gives you all three.
+
+## Why this is chapter 1
+
+Every other chapter in this book pre-supposes you understand *why* anyone would
+use Aleo instead of Postgres + signatures. If you can answer that in one
+sentence, you can skip ahead. If not, this chapter is the foundation.

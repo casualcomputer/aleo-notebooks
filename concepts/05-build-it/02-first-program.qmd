@@ -1,0 +1,40 @@
+---
+title: "Your first program"
+subtitle: "Edit Leo, watch it compile, run it locally."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+You've installed Leo. You've run `leo new`. Now what should you actually
+write to learn the most in the shortest time?
+
+## What this chapter will cover
+
+A guided "build a token" exercise:
+
+1. **v0** — `add(a, b) -> c` (pure function, no state)
+2. **v1** — add a `mapping balances`, write `mint_public`
+3. **v2** — add a `record Token`, write `mint_private`
+4. **v3** — write `transfer_private`, learn the consume-and-produce pattern
+5. **v4** — write `transfer_private_to_public`, the bridge pattern
+6. **v5** — add `@test` blocks, run `leo test`
+
+By the end, you've built a 100-line token program that mirrors the structure
+of `credits.aleo` and any standalone token contract.
+
+## Interactive viz planned
+
+A side-by-side editor: paste Leo source on the left, see the generated AVM
+bytecode on the right, hover any source line to highlight the corresponding
+bytecode.
+
+## Why this exercise
+
+You learn more by writing 100 lines of Leo than by reading 1000 lines of docs.
+This chapter is paced so each step adds **exactly one** new concept (a
+mapping, a record, a transition, etc.) — you can stop at any v.X and have a
+working artifact.

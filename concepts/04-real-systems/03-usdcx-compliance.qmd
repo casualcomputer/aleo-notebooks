@@ -1,0 +1,64 @@
+---
+title: "USDCx and the freeze list"
+subtitle: "Compliance without surveillance, in production."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon. (For the cryptographic primitive
+that powers this chapter, see [Merkle trees](../02-cryptographic-primitives/02-merkle-trees.qmd) — that's the
+foundation; this chapter shows how Circle and Paxos actually deploy it.)
+:::
+
+## The question
+
+Circle issues USDCx (`usdcx_stablecoin.aleo`) on Aleo mainnet. Paxos issues
+USAD (`usad_stablecoin.aleo`). Both are subject to OFAC sanctions. Both
+need to block sanctioned addresses while preserving privacy for everyone else.
+
+How do they do it?
+
+## What this chapter will cover
+
+- The 3-program pattern: `*_stablecoin.aleo` + `*_freezelist.aleo` + `*_multisig_core.aleo`
+- The freeze list as a sorted Merkle tree (revisits the
+  [Merkle chapter](../02-cryptographic-primitives/02-merkle-trees.qmd) with real bytecode)
+- All 8 transfer variants in USDCx, by privacy pair: public/private × from/to
+  - `transfer_public` (no Merkle proof needed)
+  - `transfer_public_to_private` (no Merkle proof — entry point for newcomers)
+  - `transfer_private` (requires `[MerkleProof; 2]` for sender + recipient)
+  - `transfer_private_to_public` (requires `[MerkleProof; 2]`)
+  - `transfer_from_public` and `_public_to_private` (allowance-based)
+  - `transfer_private_with_creds` (uses Credentials record)
+- The compliance API contract: what Circle's proof server returns, in what format
+- The `Credentials` record pattern (precomputed compliance proof attached to a record)
+- The pause flag: how the multisig can freeze the entire token in an emergency
+- Mainnet vs testnet program IDs: `usdcx_stablecoin.aleo` vs `test_usdcx_stablecoin.aleo`
+
+## Interactive viz planned
+
+A "transfer wizard": pick a privacy pair (public/public, public/private, etc.)
+and a token (USDCx, USAD), watch the wizard show:
+- What inputs are needed
+- What records are consumed/produced
+- What public state changes
+- What proof obligations are enforced
+
+## Verified mainnet endpoints used in this chapter
+
+```bash
+curl https://api.explorer.provable.com/v1/mainnet/program/usdcx_stablecoin.aleo
+curl https://api.explorer.provable.com/v1/mainnet/program/usdcx_freezelist.aleo
+curl https://api.explorer.provable.com/v1/mainnet/program/usdcx_multisig_core.aleo
+curl https://api.explorer.provable.com/v1/mainnet/program/usad_stablecoin.aleo
+curl https://api.explorer.provable.com/v1/mainnet/program/usad_freezelist.aleo
+curl https://api.explorer.provable.com/v1/mainnet/program/usad_multisig_core.aleo
+```
+
+All six were live (HTTP 200) at the time of this book's last verification.
+
+## Why this matters
+
+USDCx and USAD are the **first major regulated stablecoins on a privacy chain**.
+Their architecture is a template for any future compliance-heavy privacy
+app — KYC pools, accredited-investor flows, sanctions-screened DeFi.
+Read it once, and you can recognize the same pattern in any future deployment.

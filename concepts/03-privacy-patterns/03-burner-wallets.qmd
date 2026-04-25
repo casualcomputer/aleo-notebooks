@@ -1,0 +1,43 @@
+---
+title: "Burner wallets"
+subtitle: "Severing the link between identity and on-chain activity."
+---
+
+::: {.callout-note}
+**Status:** Stub. Full chapter coming soon.
+:::
+
+## The question
+
+Even with private records, a user's main wallet leaves a public footprint —
+the merchant address they paid, the public mapping updates, the gas fees.
+For maximum privacy, the user wants a *fresh, ephemeral* address per
+transaction, with no link back to their identity.
+
+But a fresh address has no funds. How do you onboard one?
+And how do you back it up so the user doesn't lose their money?
+
+## What this chapter will cover
+
+- The burner wallet UX: identity wallet (long-term) + burner wallet (one-shot)
+- Funding the burner: two patterns
+  - Atomic deposit-and-burn from the identity wallet
+  - Cross-chain swap directly into the burner (NEAR Intents, etc.)
+- On-chain encrypted backup: storing burner credentials in a record owned by
+  the identity wallet, so the user can recover the burner across devices
+- The privacy-vs-recoverability trade-off
+- NullPay's specific burner implementation (cross-reference to the
+  walkthrough chapter)
+
+## Interactive viz planned
+
+A two-actor sequence diagram with toggles:
+- Identity wallet ↔ Burner wallet ↔ Merchant
+- Show what each observer (chain, merchant, identity-wallet leaker) can see
+  with and without the burner pattern
+
+## Why this is hard
+
+Most "privacy wallets" stop at "use a fresh address." But fresh addresses
+need funding (which leaks), backup (which centralizes), and UX glue (which
+is nontrivial). This chapter walks through the actual deployed pattern.

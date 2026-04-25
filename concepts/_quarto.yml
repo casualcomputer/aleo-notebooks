@@ -1,0 +1,106 @@
+project:
+  type: book
+  output-dir: _site
+
+book:
+  title: "Aleo, Visualized"
+  subtitle: "An interactive guide to privacy on Aleo — for developers who want to understand, not memorize."
+  author: "casualcomputer"
+  date: "2026-04-25"
+  date-format: "MMM YYYY"
+
+  description: |
+    A visual, interactive book about Aleo: how its privacy primitives work,
+    why the architecture is the way it is, and how to build production apps.
+    Every chapter pairs a concrete question with a runnable visualization.
+
+  # cover-image: assets/cover.png    # uncomment when you add cover.png
+  # favicon: assets/favicon.png      # uncomment when you add favicon.png
+
+  search: true
+  page-navigation: true
+  back-to-top-navigation: true
+
+  repo-url: https://github.com/casualcomputer/aleo-notebooks
+  repo-subdir: concepts
+  repo-actions: [edit, issue]
+  repo-branch: main
+
+  sharing: [twitter, linkedin]
+
+  sidebar:
+    style: docked
+    background: light
+    collapse-level: 1
+    pinned: true
+
+  chapters:
+    - index.qmd
+
+    - part: "Foundations"
+      chapters:
+        - 01-foundations/01-why-zk.qmd
+        - 01-foundations/02-records-vs-mappings.qmd
+        - 01-foundations/03-fields-and-curves.qmd
+
+    - part: "Cryptographic primitives"
+      chapters:
+        - 02-cryptographic-primitives/01-hashes.qmd
+        - 02-cryptographic-primitives/02-merkle-trees.qmd
+        - 02-cryptographic-primitives/03-commitments.qmd
+
+    - part: "Privacy patterns"
+      chapters:
+        - 03-privacy-patterns/01-on-chain-vs-off-chain.qmd
+        - 03-privacy-patterns/02-view-key-disclosure.qmd
+        - 03-privacy-patterns/03-burner-wallets.qmd
+
+    - part: "Real systems"
+      chapters:
+        - 04-real-systems/01-credits-aleo.qmd
+        - 04-real-systems/02-token-registry.qmd
+        - 04-real-systems/03-usdcx-compliance.qmd
+        - 04-real-systems/04-nullpay-walkthrough.qmd
+
+    - part: "Build it"
+      chapters:
+        - 05-build-it/01-leo-quickstart.qmd
+        - 05-build-it/02-first-program.qmd
+        - 05-build-it/03-deploy-walkthrough.qmd
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark:  darkly
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    code-fold: false
+    code-tools: true
+    code-link: true
+    code-copy: true
+    smooth-scroll: true
+    fig-cap-location: bottom
+    tbl-cap-location: top
+    link-external-newwindow: true
+    link-external-icon: true
+
+  pdf:
+    documentclass: scrbook
+    papersize: letter
+    geometry:
+      - margin=1in
+    toc: true
+    toc-depth: 2
+    keep-tex: false
+
+  epub:
+    toc: true
+    toc-depth: 2
+
+execute:
+  freeze: auto
+  cache: true
+
+bibliography: references.bib

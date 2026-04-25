@@ -1,0 +1,1084 @@
+---
+title: "Merkle trees: proving membership without revealing the list"
+subtitle: "How USDCx and USAD enforce sanctions compliance on-chain without telling anyone who's sanctioned."
+description: |
+  An interactive walkthrough of Merkle inclusion and non-inclusion proofs as
+  Aleo actually uses them in production. Drag sliders, click leaves, and watch
+  the proof climb the tree.
+date-modified: "2026-04-25"
+---
+
+## The question
+
+Suppose you're Circle. You issue **USDCx**, a stablecoin on Aleo mainnet.
+Regulators require you to **block sanctioned addresses** from holding or
+transferring USDCx. You maintain a freeze list of, say, 65,000 addresses.
+
+You face a contradiction:
+
+- ✅ The chain must enforce the rule (so the network rejects sanctioned transfers)
+- ❌ But you cannot put the list on-chain, because that would publicly identify
+  every sanctioned individual — a massive privacy violation
+- ✅ Users still need to prove they're allowed to transfer
+- ❌ But forcing users to download 65,000 entries before every transaction
+  would be unworkable
+
+**How do you build a system where the chain enforces the rule without ever
+seeing the list, and the user proves compliance without seeing the list either?**
+
+This is the problem Merkle trees solve. Let's see how.
+
+---
+
+## The Aleo answer (in one sentence)
+
+> Store only a 32-byte **cryptographic summary** of the freeze list on-chain.
+> The user proves "I'm not on the list" by showing a tiny path through that
+> summary — a path that's forgery-proof but reveals nothing about the rest.
+
+That summary is a **Merkle root**. The path is a **Merkle proof**. The chain's
+`merkle_tree.aleo` contract verifies it in 16 hash operations regardless of
+list size.
+
+---
+
+## See it interactively
+
+Below is a working Merkle tree explorer. Drag the slider to change the list
+size. Click any leaf to highlight its inclusion proof. Type an address that
+falls between two leaves to see the **non-inclusion** proof — the exact pattern
+USDCx uses to enforce its freeze list.
+
+```{ojs}
+//| echo: false
+d3 = require("d3@7")
+
+// Tiny non-cryptographic hash for visualization (deterministic, returns hex string).
+// In production Aleo uses Poseidon4 — same shape, just stronger.
+function hash(...args) {
+  let h = 5381n
+  for (const arg of args) {
+    const s = String(arg)
+    for (let i = 0; i < s.length; i++) {
+      h = ((h * 33n) ^ BigInt(s.charCodeAt(i))) & 0xffffffffffffffffn
+    }
+    // Mix the running hash so multi-arg calls don't collapse to a fixed prefix.
+    h = ((h ^ (h >> 13n)) * 6364136223846793005n + 1442695040888963407n) & 0xffffffffffffffffn
+  }
+  return "0x" + h.toString(16).padStart(16, "0").slice(-6)
+}
+
+// Generate a plausible-looking 63-char Aleo address (bech32: aleo1 + 58 charset chars).
+function fakeAleoAddr(seed) {
+  const charset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"  // bech32 alphabet
+  let h = 5381n
+  const s = String(seed)
+  for (let i = 0; i < s.length; i++) {
+    h = ((h * 33n) ^ BigInt(s.charCodeAt(i))) & 0xffffffffffffffffn
+  }
+  let out = ""
+  for (let i = 0; i < 58; i++) {
+    out += charset[Number(h % 32n)]
+    h = (h * 6364136223846793005n + 1442695040888963407n) & 0xffffffffffffffffn
+  }
+  return "aleo1" + out
+}
+
+// Truncate an address for display: aleo1abcd...wxyz
+function shortAddr(addr) {
+  if (!addr || addr.length < 16) return addr
+  return addr.slice(0, 9) + "…" + addr.slice(-4)
+}
+```
+
+```{ojs}
+//| echo: false
+viewof leafCount = Inputs.range([4, 32], {
+  value: 8, step: 1, label: "Number of addresses on the freeze list"
+})
+```
+
+```{ojs}
+//| echo: false
+viewof targetAddr = Inputs.text({
+  label: "Address to check (full aleo1...)",
+  value: "aleo1mzzzz0qpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvdw0s3jn",
+  placeholder: "paste any aleo1... — try copying one from the tree below",
+  width: 600
+})
+```
+
+```{ojs}
+//| echo: false
+// Total steps = 6 setup steps + (tree depth - 1) climb levels.
+// e.g., 8-leaf tree (3 levels) → max = 8: steps 6,7,8 walk leaves → root.
+totalSteps = 6 + Math.max(0, tree.levels.length - 1)
+```
+
+```{ojs}
+//| echo: false
+viewof step = Inputs.range([0, totalSteps], {
+  value: 0, step: 1,
+  label: `Walk the flow: drag 0 → ${totalSteps}. Steps 0–5 = setup; step 6 onward = chain recomputes the root level by level.`,
+  width: 700
+})
+```
+
+```{ojs}
+//| echo: false
+// Once step >= 6, climbLevel tells us how far up the tree the chain has recomputed.
+// climbLevel == 0 → just have leaf hashes
+// climbLevel == 1 → combined leaves with their level-0 siblings (have level-1 hashes)
+// climbLevel == tree.levels.length - 1 → reached the root
+climbLevel = step >= 6 ? Math.min(step - 6, tree.levels.length - 1) : -1
+```
+
+```{ojs}
+//| echo: false
+// Compute, for each bracketing leaf, the list of "(my_node, sibling)" pairs
+// at each level — this IS the proof. The 16 sibling hashes that Circle returns
+// are exactly the .sibling values along this path.
+proofPaths = {
+  if (proofInfo.kind !== "non-inclusion") return null
+
+  function computePath(startIdx) {
+    const steps = []
+    let curIdx = startIdx
+    for (let lvl = 0; lvl < tree.levels.length - 1; lvl++) {
+      const level = tree.levels[lvl]
+      if (curIdx >= level.length) break
+      const myNode = level[curIdx]
+      const sibIdx = curIdx % 2 === 0 ? curIdx + 1 : curIdx - 1
+      const sibling = level[sibIdx]
+        ? { hash: level[sibIdx].hash, isReal: true }
+        : { hash: "0x000000", isReal: false }   // pad with zero if non-power-of-2
+      steps.push({
+        level: lvl,
+        myIndex: curIdx,
+        myHash: myNode.hash,
+        siblingHash: sibling.hash,
+        siblingReal: sibling.isReal,
+        position: curIdx % 2 === 0 ? "left" : "right"
+      })
+      curIdx = Math.floor(curIdx / 2)
+    }
+    return steps
+  }
+
+  return {
+    left:  computePath(proofInfo.leftIndex),
+    right: computePath(proofInfo.rightIndex),
+    leftLeaf:  freezeList[proofInfo.leftIndex],
+    rightLeaf: freezeList[proofInfo.rightIndex]
+  }
+}
+```
+
+```{ojs}
+//| echo: false
+// "Wire format" panel: shows EXACTLY what Circle sends back over HTTPS.
+// Appears at step >= 4. The user's wallet receives this opaque JSON;
+// it does not see Circle's full tree.
+{
+  if (step < 4 || !proofPaths) {
+    return html`<div style="padding: 20px; color: #6b7280; font-style: italic; text-align: center;">
+      Wire-format proof appears at step 4. (Drag the slider above.)
+    </div>`
+  }
+
+  const pad = "0x" + "00".repeat(3)
+  const renderSiblings = (path) =>
+    path.map((s, i) =>
+      `      "${s.siblingHash}",${i === 0 ? "  // sibling at leaf level" : ""}`
+    ).concat([`      "${pad}",  // remaining zero-siblings up to depth 16`])
+     .join("\n")
+
+  return html`<div style="background: #1e293b; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.5; overflow-x: auto;">
+<div style="color: #94a3b8; margin-bottom: 8px; font-family: ui-sans-serif;">📥 What Circle returns over the wire (this is the only thing the user receives):</div>
+<pre style="margin: 0; color: #e2e8f0;">{
+  <span style="color: #93c5fd">"proof_left"</span>: {
+    <span style="color: #93c5fd">"siblings"</span>: [
+      <span style="color: #fbbf24">"${proofPaths.leftLeaf.length > 12 ? shortAddr(proofPaths.leftLeaf) : proofPaths.leftLeaf}"</span>,  <span style="color: #94a3b8">// siblings[0] = the leaf VALUE itself (B)</span>
+${renderSiblings(proofPaths.left).split("\n").map(l => `      <span style="color: #fbbf24">${l.trim().split('"')[1] ? `"${l.trim().split('"')[1]}"` : l}</span>`).slice(0, 6).join(",\n")}
+      <span style="color: #94a3b8">... padded with zero-fields to depth 16 ...</span>
+    ],
+    <span style="color: #93c5fd">"leaf_index"</span>: <span style="color: #fbbf24">${proofInfo.leftIndex}</span>
+  },
+  <span style="color: #93c5fd">"proof_right"</span>: {
+    <span style="color: #93c5fd">"siblings"</span>: [
+      <span style="color: #fbbf24">"${proofPaths.rightLeaf.length > 12 ? shortAddr(proofPaths.rightLeaf) : proofPaths.rightLeaf}"</span>,  <span style="color: #94a3b8">// siblings[0] = the leaf VALUE itself (C)</span>
+      <span style="color: #94a3b8">... 15 more sibling hashes climbing the tree ...</span>
+    ],
+    <span style="color: #93c5fd">"leaf_index"</span>: <span style="color: #fbbf24">${proofInfo.rightIndex}</span>
+  }
+}</pre>
+<div style="color: #94a3b8; margin-top: 12px; font-family: ui-sans-serif; font-size: 11.5px;">
+  Total size: ~1 KB. The user's wallet does NOT have the freeze list.
+  It has only its own address Z and this opaque blob. The bytes shown here are
+  what flow over the network from Circle to the user's browser.
+</div>
+</div>`
+}
+```
+
+```{ojs}
+//| echo: false
+// Per-level "Need / Have / Compute" panel.
+// At step 6: shows level 0 (leaves themselves).
+// At step 7: shows level 1 (combined leaves with siblings at level 0).
+// ... and so on until the root.
+// This is the "what's needed, how it's recovered" walkthrough.
+{
+  if (climbLevel < 0 || !proofPaths) {
+    const placeholder = document.createElement("div")
+    placeholder.innerHTML = `<div style="padding: 16px; color: #6b7280; font-style: italic; text-align: center;">
+      Step-by-step recompute appears at step 6 onward. Each step climbs one tree level.
+    </div>`
+    return placeholder
+  }
+
+  const reachedRoot = climbLevel >= tree.levels.length - 1
+
+  function levelPanel(pathName, path, color) {
+    const L = climbLevel
+    if (L === 0) {
+      // Just the leaf — no hashing yet
+      const leaf = path[0]
+      return `<div style="background: ${color.bg}; border-left: 4px solid ${color.border}; padding: 14px; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.7;">
+<div style="color: ${color.title}; font-weight: 600; margin-bottom: 6px; font-family: ui-sans-serif;">${pathName} — level 0 (start)</div>
+<div><strong style="color: #1e293b;">NEED:</strong> the leaf's hash to start climbing.</div>
+<div><strong style="color: #1e293b;">HAVE:</strong> from <span style="background: #fef3c7; padding: 1px 4px; border-radius: 3px;">proof.siblings[0]</span> — the leaf VALUE itself.</div>
+<div style="margin-top: 6px; color: #16a34a;"><strong>current</strong> = ${leaf.myHash}</div>
+</div>`
+    }
+    // L >= 1: combine current with sibling at level L-1
+    const stepData = path[L - 1]   // the climb at level L-1 produces the level-L hash
+    if (!stepData) return ""
+    const parent = tree.levels[L][Math.floor(stepData.myIndex / 2)]
+    const parentHash = parent?.hash || "—"
+    const order = stepData.position === "left"
+      ? `hash(<strong style="color:#16a34a">current</strong>, <strong style="color:#fbbf24">sibling</strong>)`
+      : `hash(<strong style="color:#fbbf24">sibling</strong>, <strong style="color:#16a34a">current</strong>)`
+    return `<div style="background: ${color.bg}; border-left: 4px solid ${color.border}; padding: 14px; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.7;">
+<div style="color: ${color.title}; font-weight: 600; margin-bottom: 6px; font-family: ui-sans-serif;">${pathName} — level ${L} (climb #${L})</div>
+<div><strong style="color: #1e293b;">NEED:</strong> my hash at level ${L-1}, AND the sibling at level ${L-1}.</div>
+<div><strong style="color: #1e293b;">HAVE current:</strong> from <em>previous step</em> = <span style="color: #16a34a">${stepData.myHash}</span></div>
+<div><strong style="color: #1e293b;">HAVE sibling:</strong> from <span style="background: #fef3c7; padding: 1px 4px; border-radius: 3px;">proof.siblings[${L}]</span> = <span style="color: #d97706">${stepData.siblingHash}</span> ${stepData.position === "left" ? "(I'm left, sibling on right)" : "(I'm right, sibling on left)"}</div>
+<div style="margin-top: 6px;"><strong style="color: #1e293b;">COMPUTE:</strong> ${order} = <span style="color: #16a34a; font-weight: 600;">${parentHash}</span></div>
+${L === tree.levels.length - 1 ? `<div style="margin-top: 8px; color: #16a34a;"><strong>← this IS the root.</strong></div>` : ""}
+</div>`
+  }
+
+  const left = levelPanel("⛓️ Recomputing proof_left", proofPaths.left, {
+    bg: "#f0fdf4", border: "#16a34a", title: "#166534"
+  })
+  const right = levelPanel("⛓️ Recomputing proof_right", proofPaths.right, {
+    bg: "#fff7ed", border: "#f97316", title: "#9a3412"
+  })
+
+  const summaryHtml = reachedRoot
+    ? `<div style="margin-top: 12px; padding: 12px; background: #dcfce7; border-left: 4px solid #16a34a; border-radius: 6px; font-size: 13px; line-height: 1.6;">
+<div style="font-weight: 600; margin-bottom: 6px;">All four verification checks:</div>
+<div>✓ <strong>recomputed_root from proof_left</strong> = <code>${tree.root}</code> = stored_root</div>
+<div>✓ <strong>recomputed_root from proof_right</strong> = <code>${tree.root}</code> = stored_root</div>
+<div>✓ <strong>adjacent</strong>: leaf_index ${proofInfo.leftIndex} + 1 = ${proofInfo.rightIndex}</div>
+<div>✓ <strong>sort order</strong>: ${shortAddr(proofPaths.leftLeaf)} &lt; <code>${shortAddr(targetAddr)}</code> &lt; ${shortAddr(proofPaths.rightLeaf)}</div>
+<div style="margin-top: 8px; color: #166534;"><strong>→ Transfer PROCEEDS.</strong></div>
+</div>`
+    : `<div style="margin-top: 12px; padding: 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; color: #475569;">
+Step ${step}/${totalSteps}. Drag the slider further to climb the next tree level. Reaches root at step ${totalSteps}.
+</div>`
+
+  const container = document.createElement("div")
+  container.innerHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">${left}${right}</div>${summaryHtml}`
+  return container
+}
+```
+
+```{ojs}
+//| echo: false
+// 3-lane sequence diagram: User wallet → Circle compliance server → Aleo chain
+{
+  const width = 900
+  const height = 420
+  const lanes = [
+    { id: "user",   x: 150, label: "👛 User wallet",        sub: "holds address Z" },
+    { id: "circle", x: 460, label: "🏢 Circle (compliance)", sub: "holds full freeze list" },
+    { id: "chain",  x: 770, label: "⛓️ Aleo mainnet",        sub: "stores only the root" }
+  ]
+  const topY = 50
+  const lifelineTop = 90
+  const lifelineBottom = height - 30
+
+  const svg = d3.create("svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .style("max-width", "100%")
+    .style("font", "12px ui-sans-serif, system-ui, sans-serif")
+    .style("background", "#fafafa")
+    .style("border-radius", "6px")
+    .style("padding", "12px")
+
+  // Lane headers + lifelines
+  for (const lane of lanes) {
+    const g = svg.append("g").attr("transform", `translate(${lane.x},${topY})`)
+    g.append("rect")
+      .attr("x", -90).attr("y", -18)
+      .attr("width", 180).attr("height", 44)
+      .attr("rx", 6)
+      .attr("fill", "#fff")
+      .attr("stroke", "#9ca3af")
+    g.append("text")
+      .attr("text-anchor", "middle")
+      .attr("y", 0)
+      .style("font-weight", "600")
+      .text(lane.label)
+    g.append("text")
+      .attr("text-anchor", "middle")
+      .attr("y", 18)
+      .style("font-size", "10.5px")
+      .style("fill", "#6b7280")
+      .text(lane.sub)
+
+    // dashed lifeline
+    svg.append("line")
+      .attr("x1", lane.x).attr("y1", lifelineTop)
+      .attr("x2", lane.x).attr("y2", lifelineBottom)
+      .attr("stroke", "#d1d5db")
+      .attr("stroke-dasharray", "3,3")
+  }
+
+  // Helper: a labeled arrow between two lanes at a given y, with optional payload chip
+  function drawMessage({ fromX, toX, y, label, payload, active }) {
+    const opacity = active ? 1 : 0.18
+    const color = active ? "#2563eb" : "#9ca3af"
+    const dir = toX > fromX ? 1 : -1
+    const g = svg.append("g").style("opacity", opacity)
+
+    // arrow line
+    g.append("line")
+      .attr("x1", fromX + dir * 90).attr("y1", y)
+      .attr("x2", toX - dir * 90).attr("y2", y)
+      .attr("stroke", color).attr("stroke-width", 2)
+    // arrowhead
+    g.append("polygon")
+      .attr("points", `${toX - dir * 90},${y} ${toX - dir * 100},${y - 5} ${toX - dir * 100},${y + 5}`)
+      .attr("fill", color)
+    // label above the line
+    g.append("text")
+      .attr("x", (fromX + toX) / 2).attr("y", y - 8)
+      .attr("text-anchor", "middle")
+      .style("fill", color)
+      .style("font-weight", "600")
+      .text(label)
+    // payload chip below the line
+    if (payload) {
+      const chip = g.append("g").attr("transform", `translate(${(fromX + toX) / 2}, ${y + 18})`)
+      const text = chip.append("text")
+        .attr("text-anchor", "middle")
+        .style("font", "11px ui-monospace, Menlo, monospace")
+        .style("fill", "#374151")
+        .text(payload)
+      // background under text
+      const bbox = text.node().getBBox()
+      chip.insert("rect", "text")
+        .attr("x", bbox.x - 6).attr("y", bbox.y - 2)
+        .attr("width", bbox.width + 12).attr("height", bbox.height + 4)
+        .attr("rx", 3)
+        .attr("fill", "#fef3c7")
+        .attr("stroke", "#fbbf24")
+    }
+    return g
+  }
+
+  // Helper: a self-loop "thinking" / "verifying" badge on one lane
+  function drawSelfLoop({ x, y, label, active }) {
+    const opacity = active ? 1 : 0.18
+    const color = active ? "#16a34a" : "#9ca3af"
+    const g = svg.append("g").style("opacity", opacity)
+    const text = g.append("text")
+      .attr("x", x).attr("y", y + 4)
+      .attr("text-anchor", "middle")
+      .style("fill", color)
+      .style("font-weight", "600")
+      .style("font-size", "11.5px")
+      .text(label)
+    const bbox = text.node().getBBox()
+    g.insert("rect", "text")
+      .attr("x", bbox.x - 8).attr("y", bbox.y - 3)
+      .attr("width", bbox.width + 16).attr("height", bbox.height + 6)
+      .attr("rx", 4)
+      .attr("fill", active ? "#dcfce7" : "#f3f4f6")
+      .attr("stroke", color)
+    return g
+  }
+
+  const userX   = lanes[0].x
+  const circleX = lanes[1].x
+  const chainX  = lanes[2].x
+
+  // Build the message sequence
+  // Step 1: user holds address (annotation on the user lane)
+  drawSelfLoop({
+    x: userX, y: 130,
+    label: `Z = ${shortAddr(targetAddr)}`,
+    active: step >= 1
+  })
+
+  // Step 2: User → Circle: POST {address: Z}
+  drawMessage({
+    fromX: userX, toX: circleX, y: 175,
+    label: "POST /proof",
+    payload: `{ address: ${shortAddr(targetAddr)} }`,
+    active: step >= 2
+  })
+
+  // Step 3: Circle finds the bracketing pair (self-thought on Circle's lane)
+  drawSelfLoop({
+    x: circleX, y: 215,
+    label: proofInfo.kind === "non-inclusion"
+      ? `looked up Z → bracket = (pos ${proofInfo.leftIndex}, pos ${proofInfo.rightIndex})`
+      : `looked up Z → ${proofInfo.kind === "inclusion" ? "ON list, refuse proof" : "out of range"}`,
+    active: step >= 3
+  })
+
+  // Step 4: Circle → User: returns the proof
+  drawMessage({
+    fromX: circleX, toX: userX, y: 260,
+    label: "← proof",
+    payload: proofInfo.kind === "non-inclusion"
+      ? "{ proof_left, proof_right }  (~1 KB)"
+      : "{ refused: true }",
+    active: step >= 4
+  })
+
+  // Step 5: User → Aleo: transfer + proof
+  drawMessage({
+    fromX: userX, toX: chainX, y: 305,
+    label: "transfer_private(...)",
+    payload: "[ proof_left, proof_right, record, ... ]",
+    active: step >= 5 && proofInfo.kind === "non-inclusion"
+  })
+
+  // Step 6: Aleo verifies (4 checks bunched on chain lane)
+  if (step >= 6 && proofInfo.kind === "non-inclusion") {
+    const checks = [
+      "✓ recompute root from proof_left  →  matches stored root",
+      "✓ recompute root from proof_right →  matches stored root",
+      `✓ adjacent: idx ${proofInfo.leftIndex} + 1 = idx ${proofInfo.rightIndex}`,
+      `✓ ${shortAddr(proofInfo.bracketingLeft)} < Z < ${shortAddr(proofInfo.bracketingRight)}`
+    ]
+    checks.forEach((c, i) => {
+      drawSelfLoop({ x: chainX, y: 345 + i * 20, label: c, active: true })
+    })
+  } else if (step >= 6) {
+    drawSelfLoop({
+      x: chainX, y: 345,
+      label: proofInfo.kind === "inclusion"
+        ? "❌ Z is on freeze list — REVERT"
+        : "❌ no valid proof — REVERT",
+      active: true
+    })
+  }
+
+  // Step indicator (top-right corner)
+  svg.append("text")
+    .attr("x", width - 20).attr("y", 24)
+    .attr("text-anchor", "end")
+    .style("font", "11px ui-monospace, Menlo, monospace")
+    .style("fill", "#6b7280")
+    .text(`step ${step} / 6`)
+
+  return svg.node()
+}
+```
+
+```{ojs}
+//| echo: false
+md`### What's happening at this step
+
+${[
+  "_Drag the slider above to step through the flow._",
+  "**Step 1.** The user has an Aleo address \`Z\`. They want to do a private USDCx transfer. Their wallet has Z in memory; the chain has only the freeze-list root.",
+  "**Step 2.** Wallet POSTs \`Z\` to Circle's compliance server. The chain doesn't see this request — it's a regular HTTPS call.",
+  "**Step 3.** Circle's server has the full sorted freeze list off-chain. It searches for Z, finds the two leaves that bracket Z in sorted order, and prepares two inclusion proofs (one for each bracketing leaf).",
+  "**Step 4.** Circle returns a ~1 KB JSON blob: \`{proof_left, proof_right}\`. Each proof is 16 sibling hashes + a leaf_index. The user's wallet treats this blob as opaque bytes.",
+  "**Step 5.** Wallet calls \`usdcx_stablecoin.aleo::transfer_private\` with the proof attached. The chain sees the call and the proof, but Z and the proof are private inputs — they don't appear in the public tx record.",
+  "**Step 6.** \`merkle_tree.aleo::verify_non_inclusion\` runs four checks (shown). All four must pass. If any fail, the entire transaction reverts."
+][step] || "_Drag the slider to start._"}`
+```
+
+```{ojs}
+//| echo: false
+// Generate a sorted list of fake addresses for the freeze list
+freezeList = {
+  const items = d3.range(leafCount).map(i => fakeAleoAddr(`seed_${i}`))
+  return d3.sort(items)  // sorted, so non-inclusion via adjacency works
+}
+```
+
+```{ojs}
+//| echo: false
+// Build the Merkle tree bottom-up
+tree = {
+  let level = freezeList.map(addr => ({
+    type: "leaf",
+    addr,
+    hash: hash(addr),
+    index: freezeList.indexOf(addr)
+  }))
+  const levels = [level]
+  while (level.length > 1) {
+    const next = []
+    for (let i = 0; i < level.length; i += 2) {
+      const left = level[i]
+      const right = level[i + 1] || { hash: "0x000000" } // pad with zero
+      next.push({
+        type: "node",
+        hash: hash(left.hash, right.hash),
+        left, right
+      })
+    }
+    level = next
+    levels.push(level)
+  }
+  return { levels, root: level[0]?.hash }
+}
+```
+
+```{ojs}
+//| echo: false
+// Find bracketing pair for non-inclusion (or detect inclusion / out-of-bounds)
+proofInfo = {
+  const z = targetAddr
+  const idx = freezeList.indexOf(z)
+  if (idx >= 0) {
+    return {
+      kind: "inclusion",
+      message: `**${shortAddr(z)}** IS on the freeze list at position ${idx}. Transfer would be REJECTED.`,
+      highlightLeaves: [idx]
+    }
+  }
+  // Find the bracketing pair (string compare — same order as bech32)
+  let i = 0
+  while (i < freezeList.length && freezeList[i] < z) i++
+  if (i === 0) {
+    return {
+      kind: "below",
+      message: `**${shortAddr(z)}** sorts before the smallest leaf. In production a sentinel "min" leaf brackets below; this demo skips that. Try an address starting with later characters (q is small, l is large in the bech32 alphabet).`,
+      highlightLeaves: []
+    }
+  }
+  if (i === freezeList.length) {
+    return {
+      kind: "above",
+      message: `**${shortAddr(z)}** sorts after the largest leaf. In production a sentinel "max" leaf brackets above; this demo skips that. Try a smaller address.`,
+      highlightLeaves: []
+    }
+  }
+  return {
+    kind: "non-inclusion",
+    message: `**${shortAddr(z)}** is NOT on the freeze list. Bracketed by ${shortAddr(freezeList[i-1])} (pos ${i-1}) and ${shortAddr(freezeList[i])} (pos ${i}) — adjacent in the sorted tree. Transfer would PROCEED.`,
+    highlightLeaves: [i - 1, i],
+    bracketingLeft: freezeList[i - 1],
+    bracketingRight: freezeList[i],
+    leftIndex: i - 1,
+    rightIndex: i
+  }
+}
+```
+
+```{ojs}
+//| echo: false
+// Render the tree as SVG, with highlights
+{
+  const width = 900
+  const levelHeight = 80
+  // Extra bottom padding so leaf labels (the address text below each leaf box)
+  // are inside the viewport, not clipped at the SVG edge.
+  const bottomPadding = 60
+  const height = tree.levels.length * levelHeight + bottomPadding
+
+  const svg = d3.create("svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .style("max-width", "100%")
+    .style("font", "11px ui-monospace, Menlo, monospace")
+
+  // Compute positions — start above the bottom padding so leaf labels fit.
+  tree.levels.forEach((level, lvl) => {
+    const y = height - bottomPadding - lvl * levelHeight
+    level.forEach((node, i) => {
+      node.x = (width / (level.length + 1)) * (i + 1)
+      node.y = y
+    })
+  })
+
+  // Helper: is this leaf highlighted? Coordinated with the sequence step:
+  // bracket appears only once Circle has "found" it (step >= 3).
+  const isHighlight = (leafIdx) =>
+    step >= 3 && proofInfo.highlightLeaves.includes(leafIdx)
+
+  // Categorize each tree node by its role in the proof:
+  //   - "path-left":  on the climb path of proof_left (left bracket → root)
+  //   - "path-right": on the climb path of proof_right (right bracket → root)
+  //   - "sibling":    the sibling hash used at some level (the "data" in the proof)
+  //   - "root":       the final stored root (always visible)
+  //   - none:         not part of the proof; chain doesn't see this node
+  const nodeRoles = new Map()  // "lvl:idx" → role
+  if (proofPaths) {
+    // Walk left path: include myIndex at each level + parent at the top
+    let curIdx = proofInfo.leftIndex
+    for (let lvl = 0; lvl < tree.levels.length; lvl++) {
+      const key = `${lvl}:${curIdx}`
+      if (!nodeRoles.has(key)) nodeRoles.set(key, "path-left")
+      curIdx = Math.floor(curIdx / 2)
+    }
+    // Walk right path
+    curIdx = proofInfo.rightIndex
+    for (let lvl = 0; lvl < tree.levels.length; lvl++) {
+      const key = `${lvl}:${curIdx}`
+      // If both paths converge (they always do above the bracket level), label "path-both"
+      if (nodeRoles.get(key) === "path-left") nodeRoles.set(key, "path-both")
+      else if (!nodeRoles.has(key)) nodeRoles.set(key, "path-right")
+      curIdx = Math.floor(curIdx / 2)
+    }
+    // Now mark sibling nodes: at each path step, the sibling at that level is the "data"
+    for (const path of [proofPaths.left, proofPaths.right]) {
+      for (const s of path) {
+        const sibIdx = s.myIndex % 2 === 0 ? s.myIndex + 1 : s.myIndex - 1
+        const key = `${s.level}:${sibIdx}`
+        if (!nodeRoles.has(key)) nodeRoles.set(key, "sibling")
+      }
+    }
+    // Mark root
+    nodeRoles.set(`${tree.levels.length - 1}:0`, nodeRoles.get(`${tree.levels.length - 1}:0`) || "root")
+  }
+  const roleOf = (lvl, i) => nodeRoles.get(`${lvl}:${i}`)
+  const isChainVisible = (lvl, i) => step < 5 || nodeRoles.has(`${lvl}:${i}`)
+
+  // Color scheme
+  const colors = {
+    inclusion:    { node: "#fee2e2", border: "#dc2626", text: "#991b1b" },  // red
+    "non-inclusion": { node: "#dcfce7", border: "#16a34a", text: "#166534" }, // green
+    default:      { node: "#f3f4f6", border: "#9ca3af", text: "#374151" }
+  }
+  const palette = colors[proofInfo.kind] || colors.default
+
+  // Title above the tree — changes based on perspective
+  const treeTitle = step >= 5
+    ? "⛓️ What the chain sees (only the proof's nodes; rest of tree is invisible to the chain)"
+    : "🏢 What Circle has (full freeze-list tree, kept off-chain)"
+  svg.append("text")
+    .attr("x", width / 2).attr("y", 18)
+    .attr("text-anchor", "middle")
+    .style("font-size", "13px")
+    .style("font-weight", "600")
+    .style("fill", step >= 5 ? "#0369a1" : "#374151")
+    .text(treeTitle)
+
+  // Draw edges (dim ones whose nodes aren't visible to the chain at step >= 5)
+  tree.levels.slice(0, -1).forEach((level, lvl) => {
+    level.forEach((node, i) => {
+      const parentLevel = tree.levels[lvl + 1]
+      const parent = parentLevel.find(p => p.left === node || p.right === node)
+      if (!parent) return
+      const parentI = parentLevel.indexOf(parent)
+      // Edge is "active" if both endpoints are chain-visible (or step < 5)
+      const edgeActive = isChainVisible(lvl, i) && isChainVisible(lvl + 1, parentI)
+      svg.append("line")
+        .attr("x1", node.x).attr("y1", node.y - 12)
+        .attr("x2", parent.x).attr("y2", parent.y + 12)
+        .attr("stroke", edgeActive ? "#9ca3af" : "#e5e7eb")
+        .attr("stroke-width", 1)
+    })
+  })
+
+  // Color palette by node role (used at step >= 5)
+  const roleColors = {
+    "path-left":  { fill: "#dcfce7", border: "#16a34a", text: "#166534" },  // green
+    "path-right": { fill: "#ffedd5", border: "#f97316", text: "#9a3412" },  // orange
+    "path-both":  { fill: "#dbeafe", border: "#2563eb", text: "#1e40af" },  // blue (paths converge)
+    "sibling":    { fill: "#fef3c7", border: "#d97706", text: "#92400e" },  // yellow — proof data
+    "root":       { fill: "#fef3c7", border: "#d97706", text: "#92400e" }   // root: yellow/highlight
+  }
+
+  // Helper: is this level/idx node "lit up" by the climb at the current climbLevel?
+  // - Path nodes are lit up to climbLevel
+  // - Sibling nodes are lit up at the level just below (when used in the climb)
+  function isClimbLit(lvl, i) {
+    if (climbLevel < 0) return false
+    const role = roleOf(lvl, i)
+    if (!role) return false
+    if (role === "sibling") {
+      // Sibling at level L is "used" when computing level L+1, i.e., climbLevel >= L+1
+      return climbLevel >= lvl + 1
+    }
+    // Path nodes at level L are reached when climbLevel >= L
+    return climbLevel >= lvl
+  }
+
+  // Draw nodes
+  tree.levels.forEach((level, lvl) => {
+    level.forEach((node, i) => {
+      const isLeaf = node.type === "leaf"
+      const highlight = isLeaf && isHighlight(node.index)
+      const role = roleOf(lvl, i)
+      const isRoot = lvl === tree.levels.length - 1
+
+      // Decide color: at step >= 5 use role coloring; otherwise default white/highlight
+      let fill, stroke, strokeWidth
+      if (step >= 5 && role && (climbLevel < 0 || isClimbLit(lvl, i))) {
+        const c = roleColors[role] || roleColors["sibling"]
+        fill = c.fill
+        stroke = c.border
+        strokeWidth = 2.5
+      } else if (highlight) {
+        fill = palette.node
+        stroke = palette.border
+        strokeWidth = 2.5
+      } else {
+        fill = "#fff"
+        stroke = "#9ca3af"
+        strokeWidth = 1
+      }
+
+      // At step >= 5: anything NOT in the proof is dimmed.
+      // At step >= 6: nodes not yet reached by the climb are also dimmed.
+      const visibleToChain = isChainVisible(lvl, i)
+      let groupOpacity = visibleToChain ? 1 : 0.18
+      if (climbLevel >= 0 && role && !isClimbLit(lvl, i)) {
+        groupOpacity = 0.35  // role-known but not yet reached by the climb
+      }
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${node.x},${node.y})`)
+        .style("opacity", groupOpacity)
+
+      // Box
+      g.append("rect")
+        .attr("x", -50).attr("y", -12)
+        .attr("width", 100).attr("height", 24)
+        .attr("fill", isRoot ? "#fef3c7" : fill)
+        .attr("stroke", isRoot ? "#d97706" : stroke)
+        .attr("stroke-width", isRoot ? 2.5 : strokeWidth)
+        .attr("rx", 3)
+
+      // Hash text
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .style("fill", isRoot ? "#92400e" : (highlight ? palette.text : "#374151"))
+        .style("font-weight", isRoot ? "600" : "400")
+        .text(isRoot ? `root ${node.hash}` : node.hash)
+
+      // Leaf label below (shortened address for display)
+      if (isLeaf) {
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("y", 32)
+          .style("fill", highlight ? palette.text : "#6b7280")
+          .style("font-size", "10px")
+          .text(shortAddr(node.addr))
+        // Hover-on-full-address tooltip
+        g.append("title").text(node.addr)
+      }
+    })
+  })
+
+  // ---- CLIMB OVERLAY (visual recompute walk) ----
+  // At each climbed level, draw colored arrows from (myNode + sibling) → parent,
+  // and a small numbered badge on the parent showing the climb sequence number.
+  if (climbLevel >= 1 && proofPaths) {
+    const pathConfigs = [
+      { name: "left",  path: proofPaths.left,  color: "#16a34a" },  // green
+      { name: "right", path: proofPaths.right, color: "#f97316" }   // orange
+    ]
+    for (const { name, path, color } of pathConfigs) {
+      for (let L = 1; L <= climbLevel; L++) {
+        const stepData = path[L - 1]
+        if (!stepData) continue
+        const myNode = tree.levels[L - 1][stepData.myIndex]
+        const sibIdx = stepData.myIndex % 2 === 0 ? stepData.myIndex + 1 : stepData.myIndex - 1
+        const sibNode = tree.levels[L - 1][sibIdx]
+        const parent = tree.levels[L][Math.floor(stepData.myIndex / 2)]
+        if (!myNode || !parent) continue
+
+        // Solid colored arrow: my path → parent (the "carry-up" of running hash)
+        svg.append("line")
+          .attr("x1", myNode.x).attr("y1", myNode.y - 12)
+          .attr("x2", parent.x).attr("y2", parent.y + 12)
+          .attr("stroke", color).attr("stroke-width", 3)
+          .style("opacity", 0.85)
+
+        // Dashed yellow arrow: sibling → parent (the "data" mixed in from the proof)
+        if (sibNode) {
+          svg.append("line")
+            .attr("x1", sibNode.x).attr("y1", sibNode.y - 12)
+            .attr("x2", parent.x).attr("y2", parent.y + 12)
+            .attr("stroke", "#d97706").attr("stroke-width", 2.5)
+            .attr("stroke-dasharray", "5,3")
+            .style("opacity", 0.85)
+        }
+
+        // Numbered badge on the parent showing climb step
+        // Offset left for the "left" path, right for the "right" path so they don't overlap
+        const badgeX = name === "left" ? parent.x - 56 : parent.x + 56
+        const badgeY = parent.y - 4
+        const badge = svg.append("g").attr("transform", `translate(${badgeX},${badgeY})`)
+        badge.append("circle")
+          .attr("r", 11).attr("fill", color)
+          .attr("stroke", "#fff").attr("stroke-width", 2)
+        badge.append("text")
+          .attr("text-anchor", "middle").attr("dy", "0.35em")
+          .style("font-size", "11px").style("font-weight", "700").style("fill", "#fff")
+          .text(`#${L}`)
+      }
+    }
+
+    // Legend for the climb overlay
+    const legend = svg.append("g")
+      .attr("transform", `translate(20, ${height - 20})`)
+    legend.append("rect")
+      .attr("x", -4).attr("y", -14)
+      .attr("width", 380).attr("height", 22)
+      .attr("fill", "rgba(255,255,255,0.85)")
+      .attr("stroke", "#e5e7eb").attr("rx", 3)
+    legend.append("line")
+      .attr("x1", 0).attr("x2", 24).attr("y1", 0).attr("y2", 0)
+      .attr("stroke", "#16a34a").attr("stroke-width", 3)
+    legend.append("text").attr("x", 30).attr("y", 0).attr("dy", "0.35em")
+      .style("font-size", "11px").text("running hash (carry-up)")
+    legend.append("line")
+      .attr("x1", 200).attr("x2", 224).attr("y1", 0).attr("y2", 0)
+      .attr("stroke", "#d97706").attr("stroke-width", 2.5)
+      .attr("stroke-dasharray", "5,3")
+    legend.append("text").attr("x", 230).attr("y", 0).attr("dy", "0.35em")
+      .style("font-size", "11px").text("sibling (from proof)")
+  }
+
+  return svg.node()
+}
+```
+
+```{ojs}
+//| echo: false
+md`### What you're seeing
+
+${proofInfo.message}
+
+**On-chain storage:** the entire tree compresses to a single 32-byte root —
+**\`${tree.root}\`** — that's all the chain stores, regardless of list size.
+
+**Off-chain:** Circle keeps the full freeze list. When a user wants to transfer,
+Circle's compliance server returns a tiny proof (~1 KB regardless of list size).
+
+**On-chain verification cost:** ${Math.ceil(Math.log2(leafCount))} hash operations
+to climb from leaf to root. Doubling the list adds *one* operation, not 65,000.`
+```
+
+---
+
+## How a non-inclusion proof works (step by step)
+
+When the highlighted pair above is bracketing a non-member address, here's the
+exact verification the chain runs:
+
+### 1. The user's wallet calls Circle's API
+
+```
+POST https://compliance.circle.com/aleo/proof
+{ "address": "your_aleo_address" }
+
+← returns:
+
+{
+  "proof_left":  { "siblings": [...16 fields...], "leaf_index": 4231 },
+  "proof_right": { "siblings": [...16 fields...], "leaf_index": 4232 }
+}
+```
+
+The user receives a JSON blob (~1 KB). They never see the freeze list itself.
+
+### 2. The wallet submits the transfer with the proof attached
+
+```typescript
+await executeTransaction({
+  programName: "usdcx_stablecoin.aleo",
+  functionName: "transfer_private",
+  inputs: [
+    recipient,
+    `${amount}u128`,
+    myUSDCxRecord,
+    [proof_left, proof_right],   // ← the proof from Circle
+  ],
+  fee: 250_000,
+});
+```
+
+### 3. The contract calls `merkle_tree.aleo::verify_non_inclusion`
+
+This function (verified live on mainnet) takes the user's address and the two
+proofs. It runs four checks:
+
+```
+✓ Recompute root from proof_left  → must match stored root
+✓ Recompute root from proof_right → must match stored root
+✓ proof_right.leaf_index == proof_left.leaf_index + 1   (adjacency)
+✓ proof_left.leaf_value < user_address < proof_right.leaf_value   (sort order)
+
+If all four pass → user is NOT on the list. Transfer proceeds.
+If any fail     → transaction reverts. Transfer rejected.
+```
+
+The "leaf value" of each proof is encoded in the proof's `siblings[0]` slot —
+that's a convention used by the Aleo verifier. The user's wallet treats the
+proof as opaque bytes; only the contract decodes it.
+
+---
+
+## Why both proofs must be **adjacent**
+
+The interactive widget above highlights the bracketing pair in green when a
+non-member address is selected. Those two leaves are at *consecutive*
+positions in the sorted tree.
+
+Why does the chain enforce adjacency? Because if you only proved that some
+leaf `B` and some other leaf `D` exist with `B < user < D`, the user could
+still be `C` — sitting between them in the tree. Adjacency closes that gap:
+if `B` is at position `i` and `D` is at position `i+1`, there are no positions
+between them. Period.
+
+This is why Aleo's `verify_non_inclusion` takes `[MerkleProof; 2]` (an array
+of exactly two proofs) and checks `proof_right.leaf_index == proof_left.leaf_index + 1`.
+
+---
+
+## What the contract actually stores
+
+The mainnet `usdcx_freezelist.aleo` contract stores **one mapping value**:
+
+```aleo
+mapping root:
+    key   as boolean.public;     // singleton — always 'true'
+    value as field.public;       // ← the Merkle root, ~32 bytes
+```
+
+That's it. 32 bytes for any list size up to 65,536 addresses. You can verify
+this yourself:
+
+```bash
+curl https://api.explorer.provable.com/v1/mainnet/program/usdcx_freezelist.aleo/mapping/root/true
+# returns a single field-element decimal number
+```
+
+---
+
+## Why this matters
+
+The Merkle tree is the cryptographic primitive that makes "compliance without
+surveillance" possible on Aleo. Every privacy-preserving allowlist, blocklist,
+KYC pool, airdrop, sealed-bid auction, and anonymous voting registry on
+Aleo uses some variant of this pattern.
+
+Once you've internalized this chapter, you can read **any** Aleo compliance
+contract's bytecode and immediately recognize what's happening.
+
+---
+
+## Try this
+
+1. **Reduce the list size to 4.** Watch the tree become trivial.
+   Verification still uses log₂(4) = 2 hashes regardless.
+2. **Type one of the existing addresses** (e.g., `addr_02_c`).
+   The widget switches to "inclusion" mode (red).
+3. **Type a string between two existing leaves** (e.g., `addr_03_5`).
+   Watch the bracketing pair highlight green and the non-inclusion proof become valid.
+
+Each click is teaching you the proof structure that runs on Aleo mainnet
+every time a sanctioned-or-clear check happens for USDCx or USAD.
+
+---
+
+## Real code: the Aleo SDK's `SealanceMerkleTree`
+
+The above visualization is intentionally simplified. In production, Aleo ships a
+helper class for exactly this pattern:
+[`SealanceMerkleTree`](https://developer.aleo.org/sdk/api-specification/sealance_merkle_tree)
+in `@provablehq/sdk`. ("Sealance" is Aleo's name for compliance/sanctions
+proofs.) The methods map directly to what's shown in the animation:
+
+| What you saw | SDK method | What it does |
+|--------------|-----------|--------------|
+| Build the tree | `buildTree(leaves)` | Bottom-up Poseidon hashing into a `bigint[]` representing all internal nodes |
+| Get the bracketing pair indices | `getLeafIndices(merkleTree, address)` | Returns `[leftIdx, rightIdx]` — the two indices bracketing the address |
+| Build one side's proof | `getSiblingPath(tree, leafIndex, depth)` | Returns `{ siblings: bigint[16], leaf_index: number }` |
+| Format both into wire form | `formatMerkleProof(proof)` | Stringifies for `executeTransaction` `inputs` |
+| Convert address → field | `convertAddressToField(addr)` | Maps `aleo1...` → field element (the leaf value) |
+| Internal hash | `hashTwoElements(prefix, l, r)` | Single Poseidon hash with domain prefix |
+| Generate sentinel-padded leaves | `generateLeaves(addrs, maxTreeDepth)` | Pads to depth-16 with sentinels |
+
+A complete server-side proof generation flow (the kind Circle's compliance
+backend would run):
+
+```typescript
+import { SealanceMerkleTree } from "@provablehq/sdk/testnet.js";
+
+const tree = new SealanceMerkleTree();
+
+// 1. Build the tree from the freeze list (admin's full off-chain list)
+const leaves = tree.generateLeaves(freezeList, 16);
+const merkle = tree.buildTree(leaves);
+
+// 2. Compute root for on-chain publishing
+const root = merkle[merkle.length - 1];   // root is the last element
+
+// 3. For a user query: find the two indices that bracket their address
+const userAddrField = tree.convertAddressToField(userAddress);
+const [leftIdx, rightIdx] = tree.getLeafIndices(merkle, userAddrField);
+
+// 4. Build inclusion proofs for each bracketing leaf
+const proofLeft  = tree.getSiblingPath(merkle, leftIdx,  16);
+const proofRight = tree.getSiblingPath(merkle, rightIdx, 16);
+
+// 5. Format and return to the user
+const wireProof = {
+  proof_left:  tree.formatMerkleProof(proofLeft),
+  proof_right: tree.formatMerkleProof(proofRight),
+};
+// → ship to user's wallet over HTTPS
+```
+
+The user's wallet then submits the wire proof as input to their `transfer_private`
+transition. The on-chain `merkle_tree.aleo::verify_non_inclusion` does the
+climb-and-compare your animation just walked through.
+
+---
+
+## Sources
+
+All claims verified live (April 2026):
+
+- [`merkle_tree.aleo` on mainnet](https://explorer.provable.com/program/merkle_tree.aleo) — 601 lines, 2 functions
+- [`usdcx_stablecoin.aleo` on mainnet](https://explorer.provable.com/program/usdcx_stablecoin.aleo) — imports `merkle_tree.aleo`
+- [`usad_stablecoin.aleo` on mainnet](https://explorer.provable.com/program/usad_stablecoin.aleo) — imports `merkle_tree.aleo`
+
+The verification function signature, taken directly from the deployed bytecode:
+
+```aleo
+function verify_non_inclusion:
+    input r0 as address.private;
+    input r1 as [MerkleProof; 2u32].private;
+    // ... 16 levels of climbing hash computation ...
+```
+
+If the explorer changes its UI, you can always re-fetch from the API:
+
+```bash
+curl https://api.explorer.provable.com/v1/mainnet/program/merkle_tree.aleo
+```
+
+---
+
+## Next chapter
+
+[Commitments](03-commitments.qmd) — how to bind a value to its hash without
+revealing the value, and why it's the other half of the privacy story.

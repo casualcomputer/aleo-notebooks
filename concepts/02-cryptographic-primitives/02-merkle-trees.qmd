@@ -176,48 +176,81 @@ proofPaths = {
 
 ```{ojs}
 //| echo: false
-// "Wire format" panel: shows EXACTLY what Circle sends back over HTTPS.
-// Appears at step >= 4. The user's wallet receives this opaque JSON;
+// "Wire format" panel: shows EXACTLY what the proof looks like as it crosses
+// the wire and gets passed into executeTransaction.
+//
+// VERIFIED from the Aleo SDK docs (April 2026):
+//   - formatMerkleProof(proof) returns a Leo LITERAL STRING (not JSON).
+//   - The string is one of the `inputs` to executeTransaction.
+//   - The struct shape: [{siblings: [field; 16], leaf_index: u32}, {...}]
+// Source: https://developer.aleo.org/sdk/api-specification/sealance_merkle_tree
+//
+// Appears at step >= 4. The user's wallet receives this opaque string;
 // it does not see Circle's full tree.
 {
   if (step < 4 || !proofPaths) {
-    return html`<div style="padding: 20px; color: #6b7280; font-style: italic; text-align: center;">
+    const placeholder = document.createElement("div")
+    placeholder.innerHTML = `<div style="padding: 20px; color: #6b7280; font-style: italic; text-align: center;">
       Wire-format proof appears at step 4. (Drag the slider above.)
     </div>`
+    return placeholder
   }
 
-  const pad = "0x" + "00".repeat(3)
-  const renderSiblings = (path) =>
-    path.map((s, i) =>
-      `      "${s.siblingHash}",${i === 0 ? "  // sibling at leaf level" : ""}`
-    ).concat([`      "${pad}",  // remaining zero-siblings up to depth 16`])
-     .join("\n")
-
-  return html`<div style="background: #1e293b; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.5; overflow-x: auto;">
-<div style="color: #94a3b8; margin-bottom: 8px; font-family: ui-sans-serif;">📥 What Circle returns over the wire (this is the only thing the user receives):</div>
-<pre style="margin: 0; color: #e2e8f0;">{
-  <span style="color: #93c5fd">"proof_left"</span>: {
-    <span style="color: #93c5fd">"siblings"</span>: [
-      <span style="color: #fbbf24">"${proofPaths.leftLeaf.length > 12 ? shortAddr(proofPaths.leftLeaf) : proofPaths.leftLeaf}"</span>,  <span style="color: #94a3b8">// siblings[0] = the leaf VALUE itself (B)</span>
-${renderSiblings(proofPaths.left).split("\n").map(l => `      <span style="color: #fbbf24">${l.trim().split('"')[1] ? `"${l.trim().split('"')[1]}"` : l}</span>`).slice(0, 6).join(",\n")}
-      <span style="color: #94a3b8">... padded with zero-fields to depth 16 ...</span>
-    ],
-    <span style="color: #93c5fd">"leaf_index"</span>: <span style="color: #fbbf24">${proofInfo.leftIndex}</span>
-  },
-  <span style="color: #93c5fd">"proof_right"</span>: {
-    <span style="color: #93c5fd">"siblings"</span>: [
-      <span style="color: #fbbf24">"${proofPaths.rightLeaf.length > 12 ? shortAddr(proofPaths.rightLeaf) : proofPaths.rightLeaf}"</span>,  <span style="color: #94a3b8">// siblings[0] = the leaf VALUE itself (C)</span>
-      <span style="color: #94a3b8">... 15 more sibling hashes climbing the tree ...</span>
-    ],
-    <span style="color: #93c5fd">"leaf_index"</span>: <span style="color: #fbbf24">${proofInfo.rightIndex}</span>
+  // Convert visualization hashes (e.g., "0x6ef204") to plausible Leo `field`
+  // literals for display. In production these are real 253-bit field elements
+  // (decimal numbers up to ~76 digits, suffixed `field`).
+  function asField(hashStr, isLeafValue, leafAddr) {
+    if (isLeafValue) {
+      // siblings[0] is the leaf value — real protocol converts the address
+      // to a field via SealanceMerkleTree.convertAddressToField(addr).
+      return `${BigInt("0x" + (hashStr.replace(/^0x/, "")) + "abcdef0123456789")}field /* convertAddressToField("${shortAddr(leafAddr)}") */`
+    }
+    return `${BigInt("0x" + (hashStr.replace(/^0x/, "")) + "0".repeat(8))}field`
   }
-}</pre>
-<div style="color: #94a3b8; margin-top: 12px; font-family: ui-sans-serif; font-size: 11.5px;">
-  Total size: ~1 KB. The user's wallet does NOT have the freeze list.
-  It has only its own address Z and this opaque blob. The bytes shown here are
-  what flow over the network from Circle to the user's browser.
+
+  const renderProof = (path, leafAddr, leafIndex, label) => {
+    const lines = []
+    lines.push(`  {`)
+    lines.push(`    <span style="color: #93c5fd">siblings</span>: [`)
+    // siblings[0] = leaf value
+    lines.push(`      <span style="color: #fbbf24">${asField(path[0].myHash, true, leafAddr)}</span>,  <span style="color: #94a3b8">// siblings[0] = leaf value (the address as field, ${label})</span>`)
+    // siblings[1..N] = climbing siblings
+    path.forEach((s, i) => {
+      lines.push(`      <span style="color: #fbbf24">${asField(s.siblingHash, false)}</span>,  <span style="color: #94a3b8">// siblings[${i + 1}] = sibling at level ${i}</span>`)
+    })
+    // Padding to depth 16
+    const padded = 1 + path.length
+    if (padded < 16) {
+      lines.push(`      <span style="color: #94a3b8">/* …${16 - padded} more 0field entries padding to depth 16… */</span>`)
+    }
+    lines.push(`    ],`)
+    lines.push(`    <span style="color: #93c5fd">leaf_index</span>: <span style="color: #fbbf24">${leafIndex}u32</span>`)
+    lines.push(`  }`)
+    return lines.join("\n")
+  }
+
+  const container = document.createElement("div")
+  container.innerHTML = `<div style="background: #1e293b; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.5; overflow-x: auto;">
+<div style="color: #94a3b8; margin-bottom: 8px; font-family: ui-sans-serif;">📥 What the proof looks like as a single Leo literal string (the actual wire format — NOT JSON):</div>
+<pre style="margin: 0; color: #e2e8f0;">// The string returned by SealanceMerkleTree.formatMerkleProof([proofLeft, proofRight])
+// This whole thing is ONE STRING input to executeTransaction.
+"[
+${renderProof(proofPaths.left,  proofPaths.leftLeaf,  proofInfo.leftIndex,  "B")},
+${renderProof(proofPaths.right, proofPaths.rightLeaf, proofInfo.rightIndex, "C")}
+]"</pre>
+<div style="color: #94a3b8; margin-top: 12px; font-family: ui-sans-serif; font-size: 11.5px; line-height: 1.6;">
+  <strong style="color: #fbbf24;">Verified format</strong> from the Aleo SDK docs:
+  <code style="background: #0f172a; padding: 1px 4px; border-radius: 3px;">SealanceMerkleTree.formatMerkleProof()</code>
+  returns a Leo struct-literal <em>string</em> (not JSON). The
+  <code style="background: #0f172a; padding: 1px 4px; border-radius: 3px;">[MerkleProof; 2]</code>
+  array is exactly what
+  <code style="background: #0f172a; padding: 1px 4px; border-radius: 3px;">verify_non_inclusion</code>
+  in <code style="background: #0f172a; padding: 1px 4px; border-radius: 3px;">merkle_tree.aleo</code>
+  expects as its second input. The total size is ~1 KB. The user's wallet
+  treats this whole blob as opaque — it never sees the freeze list.
 </div>
 </div>`
+  return container
 }
 ```
 
@@ -1049,56 +1082,86 @@ every time a sanctioned-or-clear check happens for USDCx or USAD.
 
 ## Real code: the Aleo SDK's `SealanceMerkleTree`
 
-The above visualization is intentionally simplified. In production, Aleo ships a
-helper class for exactly this pattern:
+The Aleo SDK ships a helper class for exactly this pattern:
 [`SealanceMerkleTree`](https://developer.aleo.org/sdk/api-specification/sealance_merkle_tree)
 in `@provablehq/sdk`. ("Sealance" is Aleo's name for compliance/sanctions
-proofs.) The methods map directly to what's shown in the animation:
+proofs.) Verified method signatures from the official docs:
 
-| What you saw | SDK method | What it does |
-|--------------|-----------|--------------|
-| Build the tree | `buildTree(leaves)` | Bottom-up Poseidon hashing into a `bigint[]` representing all internal nodes |
-| Get the bracketing pair indices | `getLeafIndices(merkleTree, address)` | Returns `[leftIdx, rightIdx]` — the two indices bracketing the address |
-| Build one side's proof | `getSiblingPath(tree, leafIndex, depth)` | Returns `{ siblings: bigint[16], leaf_index: number }` |
-| Format both into wire form | `formatMerkleProof(proof)` | Stringifies for `executeTransaction` `inputs` |
-| Convert address → field | `convertAddressToField(addr)` | Maps `aleo1...` → field element (the leaf value) |
-| Internal hash | `hashTwoElements(prefix, l, r)` | Single Poseidon hash with domain prefix |
-| Generate sentinel-padded leaves | `generateLeaves(addrs, maxTreeDepth)` | Pads to depth-16 with sentinels |
+| Method | Signature (from official docs) | Purpose |
+|--------|--------------------------------|---------|
+| `convertAddressToField(address)` | `(string) ⇒ bigint` | `aleo1...` → field element |
+| `hashTwoElements(prefix, el1, el2)` | `(string, string, string) ⇒ Field` | Single Poseidon hash with domain prefix |
+| `generateLeaves(addresses, maxTreeDepth)` | `(string[], number) ⇒ string[]` | Returns field literals like `"123field"`; pads to depth |
+| `buildTree(leaves)` | `(string[]) ⇒ bigint[]` | Bottom-up tree as a flat array |
+| `convertTreeToBigInt(tree)` | `(string[]) ⇒ bigint[]` | Type conversion helper |
+| `getLeafIndices(merkleTree, address)` | `(bigint[], string) ⇒ [number, number]` | Returns `[leftIdx, rightIdx]` of bracketing pair |
+| `getSiblingPath(tree, leafIndex, depth)` | `(bigint[], number, number) ⇒ { siblings: bigint[], leaf_index: number }` | Single inclusion path |
+| `formatMerkleProof(proof)` | `([proof, proof]) ⇒ string` | **Returns a Leo literal string** ready to pass as an input |
 
-A complete server-side proof generation flow (the kind Circle's compliance
-backend would run):
+The complete server-side flow (the kind a compliance backend would run):
 
 ```typescript
 import { SealanceMerkleTree } from "@provablehq/sdk/testnet.js";
 
-const tree = new SealanceMerkleTree();
+const sealance = new SealanceMerkleTree();
 
-// 1. Build the tree from the freeze list (admin's full off-chain list)
-const leaves = tree.generateLeaves(freezeList, 16);
-const merkle = tree.buildTree(leaves);
+// 1. Build the tree from the freeze list
+const leaves = sealance.generateLeaves(freezeList, 16);
+const tree   = sealance.buildTree(leaves);
 
-// 2. Compute root for on-chain publishing
-const root = merkle[merkle.length - 1];   // root is the last element
+// 2. The root is published on-chain (mainnet's freeze-list contract holds it)
+const root = tree[tree.length - 1];
 
-// 3. For a user query: find the two indices that bracket their address
-const userAddrField = tree.convertAddressToField(userAddress);
-const [leftIdx, rightIdx] = tree.getLeafIndices(merkle, userAddrField);
+// 3. For a user query, find the two bracketing indices
+const [leftIdx, rightIdx] = sealance.getLeafIndices(tree, userAddress);
 
-// 4. Build inclusion proofs for each bracketing leaf
-const proofLeft  = tree.getSiblingPath(merkle, leftIdx,  16);
-const proofRight = tree.getSiblingPath(merkle, rightIdx, 16);
+// 4. Build the two sibling paths
+const proofLeft  = sealance.getSiblingPath(tree, leftIdx,  16);
+const proofRight = sealance.getSiblingPath(tree, rightIdx, 16);
 
-// 5. Format and return to the user
-const wireProof = {
-  proof_left:  tree.formatMerkleProof(proofLeft),
-  proof_right: tree.formatMerkleProof(proofRight),
-};
-// → ship to user's wallet over HTTPS
+// 5. Format both into the single Leo literal string the chain expects
+const wireProof = sealance.formatMerkleProof([proofLeft, proofRight]);
+// wireProof is a STRING, e.g.:
+// "[{siblings: [123field, 456field, ...], leaf_index: 4u32},
+//   {siblings: [789field, ..., 0field], leaf_index: 5u32}]"
 ```
 
-The user's wallet then submits the wire proof as input to their `transfer_private`
-transition. The on-chain `merkle_tree.aleo::verify_non_inclusion` does the
-climb-and-compare your animation just walked through.
+The user's wallet receives `wireProof` (a string) over HTTPS and submits it
+as one of the `inputs` to `executeTransaction`:
+
+```typescript
+await executeTransaction({
+  programName: "usdcx_stablecoin.aleo",
+  functionName: "transfer_private",
+  inputs: [
+    recipient,            // "aleo1..."
+    `${amount}u128`,
+    myUSDCxRecord,
+    wireProof,            // ← the Leo literal string from formatMerkleProof
+  ],
+  fee: 250_000,
+});
+```
+
+::: {.callout-note}
+**Honest gap:** the official Aleo SDK docs show the helper class API but
+**don't include a worked end-to-end example** of plugging the formatted
+proof into `executeTransaction`. The shape above is inferred from:
+
+1. The Aleo docs' return-type for `formatMerkleProof`: a string in Leo
+   struct-literal syntax
+2. The deployed `merkle_tree.aleo` bytecode at
+   `https://api.explorer.provable.com/v1/mainnet/program/merkle_tree.aleo`
+   showing `verify_non_inclusion` accepts `[MerkleProof; 2u32].private`
+3. The deployed `usdcx_stablecoin.aleo` bytecode showing `transfer_private`
+   takes `[MerkleProof; 2u32].private` as its 4th input
+
+Each piece is verified individually; the *integration* is not officially
+documented. If you find a canonical end-to-end example (e.g., in
+Circle/Paxos's wallet integration code or a Provable reference), please
+[open an issue](https://github.com/casualcomputer/aleo-notebooks/issues)
+so this section can cite it directly.
+:::
 
 ---
 

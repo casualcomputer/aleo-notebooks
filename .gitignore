@@ -14,3 +14,8 @@ node_modules/
 .vscode/
 .idea/
 *.swp
+
+# Quarto
+_site/
+_freeze/
+.quarto/

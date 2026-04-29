@@ -36,7 +36,7 @@ flowchart TD
     Accounts --> A1["Bookmarked addresses"]
     Accounts --> A2["Connected dApps"]
 
-    Balances --> B1["Public balance<br/>(visible on explorer)"]
+    Balances --> B1["Public balance<br/>(visible on Aleo explorer)"]
     Balances --> B2["Private balance<br/>(encrypted records)"]
     Balances --> B3["Joined Records<br/>(record consolidation)"]
 
@@ -51,8 +51,8 @@ flowchart TD
     Security --> S4["Proving keys<br/>download · view"]
     Security --> S5["Reset wallet<br/>(Danger Zone)"]
 
-    Swap --> From["FROM external chains<br/>BTC · ETH · SOL · TRX · BNB<br/>XMR · ZEC · USDC/USDT/WBTC<br/>on Arbitrum · Base · Ethereum<br/>BSC · Solana · Tron"]
-    Swap --> To["TO Aleo-side only<br/>ALEO · USAD · USDCX<br/>ETH · USDC · USDT<br/>WBTC · WSOL<br/>(via Hyperlane)"]
+    Swap --> From["FROM: asset you spend<br/>BTC · ETH · SOL · TRX · BNB<br/>XMR · ZEC · USDC/USDT/WBTC<br/>on Arbitrum · Base · Ethereum<br/>BSC · Solana · Tron"]
+    Swap --> To["TO: asset received on Aleo<br/>ALEO · USAD · USDCX<br/>ETH · USDC · USDT<br/>WBTC · WSOL<br/>(some via Hyperlane)"]
     From -.->|one-way<br/>privacy on-ramp| To
 
     classDef root fill:#0b1220,stroke:#22d3ee,stroke-width:2px,color:#f8fafc;
@@ -67,7 +67,7 @@ flowchart TD
     class To to;
 ```
 
-The load-bearing fact: **the swap's `To` side is Aleo-only**. Shield's swap is a one-way privacy on-ramp, not a generic DEX. Bringing assets out of Aleo to other chains is a separate Hyperlane-level operation.
+The load-bearing fact: **`From` is what you spend; `To` is what arrives on Aleo**. Shield's swap is a one-way privacy on-ramp, not a generic DEX. Bringing assets out of Aleo to other chains is a separate bridge-level operation.
 
 ---
 

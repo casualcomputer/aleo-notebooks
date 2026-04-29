@@ -148,6 +148,8 @@ This is the most consequential thing to know if you're designing a self-custody-
 
 For most consumer dApps this is fine. For payroll / settlement / regulated flows where you want the dApp's infrastructure to be the proof producer, it's a hard blocker.
 
+In Aleo terms, **proving** is the expensive computation that creates the zero-knowledge proof attached to a transaction. The proof is what lets validators check that a transition followed the program rules without exposing private record contents. Signing says "this user authorized it"; proving says "this private computation is valid."
+
 ### What's missing?
 
 A `signTransition` method on the wallet, returning the four fields and (for record-input transitions) record view keys + gammas:
@@ -296,6 +298,8 @@ If you need *some* records visible to a third party but not all, prefer pre-comp
 - **Delegated** *(default)* — Shield routes proving through Provable's DPS. Fast (~seconds).
 - **Local** — Shield generates the proof in WebAssembly. Slow (often minutes per circuit on a typical laptop).
 
+For non-Aleo users, the easiest analogy is: signing is cheap authorization; proving is heavy computation. Delegated proving means the wallet asks a remote prover to do the heavy computation, while still keeping the user's private key inside the wallet.
+
 In Pattern A, your dApp inherits whatever the user picked. UX implications:
 
 - Show a spinner that allows minutes, not seconds, in case the user is in Local mode.
@@ -340,7 +344,7 @@ Full SDK reference: <https://github.com/ProvableHQ/sdk>.
 
 ## Cross-chain swaps from a dev perspective
 
-### What's actually happening when a user swaps `BTC → ETH (bridged to Aleo via Hyperlane)`?
+### What's actually happening when a user swaps `BTC → ETH on Aleo (bridged via Hyperlane)`?
 
 Two legs:
 
@@ -348,6 +352,8 @@ Two legs:
 2. **Aleo-side leg** — Hyperlane delivers a message to the Aleo bridge program, which mints the corresponding Aleo-side token to the user's address.
 
 The Aleo-side mint typically lands as a public balance; the user can then `Shield` it to get a private balance.
+
+User-facing wording matters: `From` is the asset/source chain the user spends, and `To` is the Aleo-side asset Shield receives. A label like `ETH` on the `To` side means ETH represented on Aleo, not ETH sitting in the user's Ethereum wallet.
 
 ### Should my dApp invoke Shield's swap UI directly?
 

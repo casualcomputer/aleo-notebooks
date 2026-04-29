@@ -75,48 +75,53 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
 
 <section class="capability-map" aria-label="Shield capabilities workflow">
   <div class="capability-column">
-    <span class="map-label">Bring assets in</span>
+    <span class="map-label">From: asset you pay with</span>
     <h3>Cross-chain swap</h3>
-    <p>Shield's swap is a one-way privacy on-ramp into Aleo-side assets, powered by Hyperlane.</p>
-    <div class="token-cloud" aria-label="Supported source assets">
+    <p>The <strong>From</strong> side is the asset and source chain you spend. It can include BTC, ETH, SOL, stablecoins, and other listed source assets.</p>
+    <div class="token-cloud token-cloud-from" aria-label="From-side assets">
       <span>BTC</span><span>ETH</span><span>SOL</span><span>TRX</span><span>BNB</span><span>XMR</span><span>ZEC</span><span>USDC</span><span>USDT</span><span>WBTC</span>
     </div>
   </div>
   <div class="capability-rail" aria-hidden="true">
     <span></span>
-    <strong>into Shield</strong>
+    <strong>swap into</strong>
     <span></span>
   </div>
   <div class="capability-column capability-core">
-    <span class="map-label">Use Aleo privacy</span>
-    <h3>Public and private balances</h3>
-    <p>Every asset can have a public balance and a private balance. Users can send publicly, receive at the same address, or shield funds into encrypted records.</p>
-    <div class="mode-list">
-      <span>Send</span>
-      <span>Receive</span>
-      <span>Shield</span>
-      <span>Joined Records</span>
+    <span class="map-label">To: Aleo-side asset received</span>
+    <h3>Aleo wallet balance</h3>
+    <p>The <strong>To</strong> side is what arrives in Shield on Aleo. After it lands, users can keep it public or shield it into private records.</p>
+    <div class="mode-list token-cloud-to">
+      <span>ALEO</span>
+      <span>USAD</span>
+      <span>USDCX</span>
+      <span>ETH</span>
+      <span>USDC</span>
+      <span>USDT</span>
+      <span>WBTC</span>
+      <span>WSOL</span>
     </div>
   </div>
   <div class="capability-rail" aria-hidden="true">
     <span></span>
-    <strong>connect</strong>
+    <strong>then use</strong>
     <span></span>
   </div>
   <div class="capability-column">
-    <span class="map-label">Build on Shield</span>
-    <h3>dApp integration</h3>
-    <p>Developers can connect wallets, request records, decrypt, sign messages, and execute transactions through the current adapter surface.</p>
+    <span class="map-label">Use Aleo privacy</span>
+    <h3>Wallet and dApps</h3>
+    <p>Users can send publicly, send privately, receive at the same address, or connect to dApps through the current adapter surface.</p>
     <div class="api-list">
+      <code>Send</code>
+      <code>Shield</code>
       <code>connect</code>
-      <code>requestRecords</code>
       <code>executeTransaction</code>
     </div>
   </div>
 </section>
 
 <div class="callout-note">
-  The important swap detail: the <strong>To</strong> side is Aleo-only. Shield is not a generic cross-chain DEX; it is a route into Aleo-side assets such as ALEO, USAD, USDCX, ETH, USDC, USDT, WBTC, and WSOL.
+  The important swap detail: <strong>From</strong> means "what you spend"; <strong>To</strong> means "what you receive on Aleo." Hyperlane is the bridge/messaging layer for supported bridged assets. Shield may also rely on swap/quote services for routing, but the user-facing result is still a route into an Aleo-side asset, not a generic every-chain-to-every-chain DEX.
 </div>
 
 ## What makes Shield distinct
@@ -128,7 +133,7 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
   </div>
   <div class="feature">
     <h4>Proving is configurable</h4>
-    <p>Users choose delegated proving for speed or local proving under <code>Settings → Security → Proving mode</code>.</p>
+    <p>Aleo transactions include a zero-knowledge proof. Shield can ask a remote prover to compute it quickly, or compute it locally under <code>Settings → Security → Proving mode</code>.</p>
   </div>
   <div class="feature">
     <h4>Docs are split by audience</h4>

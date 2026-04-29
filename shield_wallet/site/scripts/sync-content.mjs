@@ -5,6 +5,10 @@
 // Source of truth lives in shield_wallet/USERS.md and DEVELOPERS.md. The
 // destination files are gitignored. Run automatically via `npm run dev` and
 // `npm run build` (predev / prebuild hooks in package.json).
+//
+// The canonical Markdown keeps its H1 for GitHub readability. Starlight
+// renders the frontmatter title as the page H1, so we strip the first Markdown
+// H1 in the synced copy to avoid duplicated page titles on the website.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -22,6 +26,13 @@ const files = [
   { src: "DEVELOPERS.md", dest: "developers.md" },
 ];
 
+function stripFirstMarkdownH1(content) {
+  const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n?/);
+  const prefix = frontmatterMatch?.[0] ?? "";
+  const body = content.slice(prefix.length);
+  return prefix + body.replace(/^[\r\n]*# [^\n]*\r?\n+/, "\n");
+}
+
 for (const { src, dest } of files) {
   const srcPath = resolve(sourceDir, src);
   const destPath = resolve(destDir, dest);
@@ -29,7 +40,7 @@ for (const { src, dest } of files) {
     console.error(`[sync-content] missing source file: ${srcPath}`);
     process.exit(1);
   }
-  const content = readFileSync(srcPath, "utf8");
+  const content = stripFirstMarkdownH1(readFileSync(srcPath, "utf8"));
   writeFileSync(destPath, content);
   console.log(`[sync-content] ${src} -> ${dest}`);
 }

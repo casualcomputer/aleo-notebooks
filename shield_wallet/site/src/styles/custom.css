@@ -476,6 +476,15 @@ html:not([data-has-sidebar]) .content-panel + .content-panel {
   font-weight: 620;
 }
 
+.token-cloud-from span {
+  background: color-mix(in srgb, var(--sw-indigo) 10%, var(--sw-surface-2));
+}
+
+.token-cloud-to span {
+  background: color-mix(in srgb, var(--sw-emerald) 12%, var(--sw-surface-2));
+  border-color: color-mix(in srgb, var(--sw-emerald) 35%, var(--sw-hairline));
+}
+
 .api-list code {
   border-radius: var(--sw-radius-sm);
 }

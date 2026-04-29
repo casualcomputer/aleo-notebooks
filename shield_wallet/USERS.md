@@ -17,7 +17,7 @@ audience: end-users
 
 # Aleo Shield Wallet: Complete User Guide & FAQ (2026)
 
-> **Shield is a self-custodial browser wallet for the [Aleo](https://aleo.org) blockchain.** It holds your keys on your device, lets you keep your balance fully private, and is the simplest way to use Aleo's zero-knowledge privacy in everyday wallet flows — sending, receiving, swapping in from other chains, and connecting to dApps.
+> **Shield is a self-custodial browser wallet for the [Aleo](https://aleo.org) blockchain.** It holds your keys on your device, lets you keep your balance private when you choose, and is the simplest way to use Aleo's zero-knowledge privacy in everyday wallet flows — sending, receiving, swapping in from other chains, and connecting to dApps.
 
 This guide answers the questions that come up in the first hour of using Shield. If you build dApps, see the [Developer Guide](./DEVELOPERS.md) instead.
 
@@ -59,7 +59,7 @@ This guide answers the questions that come up in the first hour of using Shield.
 
 ### What is the Shield wallet for Aleo?
 
-Shield is a browser-extension wallet for [Aleo](https://aleo.org), the zero-knowledge L1 blockchain. It stores your private key on your device, signs transactions locally, and lets you send tokens **publicly** (visible on the explorer like Ethereum) or **privately** (encrypted on-chain — only you can see them). It also supports cross-chain swaps from Bitcoin, Ethereum, Solana, Tron, BNB Chain, Monero, and Zcash *into* Aleo-side assets.
+Shield is a browser-extension wallet for [Aleo](https://aleo.org), the zero-knowledge L1 blockchain. It stores your private key on your device, signs transactions locally, and lets you send tokens **publicly** (visible on an Aleo explorer) or **privately** (encrypted on-chain — only you can see them). It also supports cross-chain swaps from Bitcoin, Ethereum, Solana, Tron, BNB Chain, Monero, and Zcash *into* Aleo-side assets.
 
 Think of Shield as **MetaMask for a chain that defaults to private**.
 
@@ -72,7 +72,7 @@ Yes. Your private key is generated on your device and stored encrypted in the br
 Three things:
 
 1. **Two balances per asset.** Every token has a *public* balance and a *private* balance. You can move between them with one tap. MetaMask and Phantom have one balance per asset; on Aleo, "private" is a first-class concept built into the chain.
-2. **Local proof generation (or delegated).** Aleo transactions ship with a zero-knowledge proof. Shield can generate that proof on your device or delegate it to a remote prover — you choose under `Settings → Security → Proving mode`.
+2. **Local proof generation (or delegated).** Aleo transactions include a zero-knowledge proof: a cryptographic receipt that proves the transaction followed the program rules without revealing private details. Shield can generate that proof on your device or delegate the computation to a remote prover — you choose under `Settings → Security → Proving mode`.
 3. **Cross-chain swap as a privacy on-ramp.** The Swap tab lets you bring assets in from Bitcoin / Ethereum / Solana / etc. and receive their Aleo-side equivalents (often privacy-shielded). It is one-way *into* Aleo's privacy, not a generic DEX.
 
 ### Is Shield free?
@@ -182,9 +182,22 @@ Aleo transactions go through proof verification on-chain before they finalize. `
 
 ## Cross-chain swaps (BETA)
 
-> Shield's swap is a **one-way privacy on-ramp**, not a generic DEX. The `From` side accepts external-chain assets; the `To` side is Aleo-only.
+> Shield's swap is a **one-way privacy on-ramp**, not a generic DEX. In the swap screen, `From` means **the asset and source chain you spend**. `To` means **the Aleo-side asset you receive in Shield**.
+
+### What is the simple mental model?
+
+Read the swap form left to right:
+
+| Field | Meaning | Example |
+|-------|---------|---------|
+| **From** | What you pay with, and where that asset starts | `BTC` on Bitcoin, `USDC` on Arbitrum, `SOL` on Solana |
+| **To** | What lands in your Shield wallet on Aleo | `ALEO`, `USDCX`, `ETH` on Aleo, `WBTC` on Aleo |
+
+So `BTC → ALEO` means: spend BTC on Bitcoin, receive an Aleo-side asset in Shield. It does **not** mean Shield is a universal bridge from Aleo back out to Bitcoin.
 
 ### What chains and tokens can I swap from?
+
+The `From` side is the source of funds. Most entries are external-chain assets; some stablecoin/bridged-token entries may also list Aleo-side versions if Shield exposes them in the picker.
 
 | Asset | Source chains |
 |-------|---------------|
@@ -222,7 +235,15 @@ Because Shield's swap is a **privacy on-ramp**, not a generic DEX. Its job is to
 
 ### What does "via Hyperlane" mean?
 
-[Hyperlane](https://www.hyperlane.xyz/) is a cross-chain messaging protocol Shield uses to move assets between Aleo and other chains. When you see "ETH bridged to Aleo via Hyperlane," it means there's a Hyperlane-controlled vault on Ethereum holding real ETH, and a corresponding mint of `ETH` on Aleo backed 1:1 by that vault. You don't custody bridged ETH on Ethereum — Hyperlane does.
+[Hyperlane](https://www.hyperlane.xyz/) is a cross-chain messaging and bridging protocol. In plain English: it is infrastructure that lets one chain tell another chain, "this user locked or moved an asset over here; mint or release the matching asset over there."
+
+When you see "ETH bridged to Aleo via Hyperlane," it means the Ethereum-side asset is represented by a matching Aleo-side token. You hold the Aleo-side token in Shield; the bridge infrastructure handles the cross-chain accounting.
+
+### Is Hyperlane the same thing as the swap service?
+
+Not exactly. A bridge protocol such as Hyperlane moves messages/assets between chains. A swap or routing service decides what route/quote to use when you trade one asset for another. Shield's UI abstracts those details into one Swap flow. The screenshot-verifiable point is: Shield labels several target assets as "via Hyperlane," and the `To` side is an Aleo-side asset in Shield.
+
+Because swap routing can change over time, treat Shield's confirmation screen as the source of truth for the exact provider, fees, route, and estimated arrival time before you approve a swap.
 
 ### What is slippage and why is it set to 1% by default?
 
@@ -244,7 +265,11 @@ If full source-chain privacy matters, start from a privacy chain (XMR, ZEC) on t
 
 ### What is Proving mode (Delegated vs Local)?
 
-Every Aleo transaction includes a zero-knowledge proof, and someone has to generate it. `Settings → Security → Proving mode` lets you choose:
+Every Aleo transaction includes a zero-knowledge proof, and someone has to generate it.
+
+A proof is like a cryptographic receipt. It lets the Aleo network verify, "this transaction followed the program rules," without forcing the wallet to reveal every private input behind the transaction. For private sends, that is what lets the chain accept the transaction while keeping private records encrypted.
+
+Generating that proof is computational work. It can be fast on a server and slow in a browser, which is why Shield gives you a setting:
 
 | Mode | Speed | Privacy | When to pick |
 |------|-------|---------|--------------|

@@ -344,11 +344,22 @@ Full SDK reference: <https://github.com/ProvableHQ/sdk>.
 
 ## Cross-chain swaps from a dev perspective
 
+### What assets does Shield's swap UI expose?
+
+Verified against Shield v1.18.0, the swap route is user-facing as:
+
+| Swap side | Meaning | Assets |
+|-----------|---------|--------|
+| **From** | Asset/source the user spends | `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, `USDCX` |
+| **To** | Asset the user receives on Aleo | `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL` |
+
+Developer implication: the `To` symbols are Aleo-side assets. `ETH` on the `To` side means an ETH representation on Aleo, not native ETH in the user's Ethereum wallet.
+
 ### What's actually happening when a user swaps `BTC → ETH on Aleo (bridged via Hyperlane)`?
 
 Two legs:
 
-1. **Source-chain leg** — a transaction on Bitcoin (or Ethereum / Solana / etc.) that locks funds in a Hyperlane-controlled vault.
+1. **Source-chain leg** — a transaction on the selected `From` chain, such as Bitcoin for `BTC`, Ethereum for `ETH`, Solana for `SOL`, Tron for `TRX`, BSC for `BNB`, Monero for `XMR`, Zcash for `ZEC`, or Arbitrum / Base / Ethereum / Solana / Tron / Aleo for supported stablecoin and wrapped-token routes.
 2. **Aleo-side leg** — Hyperlane delivers a message to the Aleo bridge program, which mints the corresponding Aleo-side token to the user's address.
 
 The Aleo-side mint typically lands as a public balance; the user can then `Shield` it to get a private balance.
@@ -357,7 +368,7 @@ User-facing wording matters: `From` is the asset/source chain the user spends, a
 
 ### Should my dApp invoke Shield's swap UI directly?
 
-No. The swap UI is a Shield-internal flow tied to its bridge integrations. Compose with bridges directly via their SDKs (Hyperlane, etc.) if you need programmatic cross-chain flows. The Shield swap UI is for end-users, not dApp composition.
+No. The swap UI is a Shield-internal flow tied to its bridge integrations. Compose with bridge or routing providers directly, such as Hyperlane for bridged assets, if you need programmatic cross-chain flows. The Shield swap UI is for end-users, not dApp composition.
 
 ### What are the Aleo-side bridged-token program IDs?
 

@@ -10,7 +10,7 @@ keywords:
 
 # Aleo Shield Wallet — Documentation
 
-> **Shield is a self-custodial browser wallet for [Aleo](https://aleo.org).** It holds private keys on the user's device, exposes Aleo's public/private balance model as first-class wallet primitives, and supports cross-chain swaps from Bitcoin, Ethereum, Solana, and other networks *into* Aleo-side privacy assets via [Hyperlane](https://www.hyperlane.xyz).
+> **Shield is a self-custodial browser wallet for [Aleo](https://aleo.org).** It holds private keys on the user's device, exposes Aleo's public/private balance model as first-class wallet primitives, and supports swaps from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` *into* Aleo-side assets via Shield's swap flow and, for supported bridged assets, [Hyperlane](https://www.hyperlane.xyz).
 
 This folder contains two FAQ guides — one for end-users, one for dApp developers — plus a deployable Astro docs site that renders both.
 
@@ -51,7 +51,7 @@ flowchart TD
     Security --> S4["Proving keys<br/>download · view"]
     Security --> S5["Reset wallet<br/>(Danger Zone)"]
 
-    Swap --> From["FROM: asset you spend<br/>BTC · ETH · SOL · TRX · BNB<br/>XMR · ZEC · USDC · USDT<br/>WBTC · USAD · USDCX<br/>on supported source networks"]
+    Swap --> From["FROM: asset you spend<br/>BTC · ETH · SOL · TRX · BNB<br/>XMR · ZEC · USDC · USDT<br/>WBTC · USAD · USDCX<br/>Bitcoin · Ethereum · Solana<br/>Tron · BSC · Monero · Zcash<br/>Arbitrum · Base · Aleo"]
     Swap --> To["TO: asset received on Aleo<br/>ALEO · USAD · USDCX<br/>ETH · USDC · USDT<br/>WBTC · WSOL<br/>(some via Hyperlane)"]
     From -.->|one-way<br/>privacy on-ramp| To
 

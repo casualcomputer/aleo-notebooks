@@ -31,7 +31,7 @@ This guide answers the questions that come up in the first hour of using Shield.
 |---|---|
 | **What it is** | Self-custodial Aleo browser wallet (Chrome / Firefox) |
 | **Privacy model** | Public *and* private balances per token, switchable with one tap |
-| **Cross-chain** | One-way swap *into* Aleo from BTC, ETH, SOL, TRX, BNB, XMR, ZEC, plus stables on Arbitrum / Base / BSC / Tron / Solana / Ethereum |
+| **Cross-chain** | One-way swap *into* Aleo from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` |
 | **Bridging via** | [Hyperlane](https://www.hyperlane.xyz/) |
 | **Proving** | Delegated by default · local in-browser also supported |
 | **Mainnet status** | Live (`Settings → Preferences → Network → Mainnet`) |
@@ -59,7 +59,7 @@ This guide answers the questions that come up in the first hour of using Shield.
 
 ### What is the Shield wallet for Aleo?
 
-Shield is a browser-extension wallet for [Aleo](https://aleo.org), the zero-knowledge L1 blockchain. It stores your private key on your device, signs transactions locally, and lets you send tokens **publicly** (visible on an Aleo explorer) or **privately** (encrypted on-chain — only you can see them). It also supports cross-chain swaps from Bitcoin, Ethereum, Solana, Tron, BNB Chain, Monero, and Zcash *into* Aleo-side assets.
+Shield is a browser-extension wallet for [Aleo](https://aleo.org), the zero-knowledge L1 blockchain. It stores your private key on your device, signs transactions locally, and lets you send tokens **publicly** (visible on an Aleo explorer) or **privately** (encrypted on-chain — only you can see them). It also supports cross-chain swaps from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` *into* Aleo-side assets.
 
 Think of Shield as **MetaMask for a chain that defaults to private**.
 
@@ -73,7 +73,7 @@ Three things:
 
 1. **Two balances per asset.** Every token has a *public* balance and a *private* balance. You can move between them with one tap. MetaMask and Phantom have one balance per asset; on Aleo, "private" is a first-class concept built into the chain.
 2. **Local proof generation (or delegated).** Aleo transactions include a zero-knowledge proof: a cryptographic receipt that proves the transaction followed the program rules without revealing private details. Shield can generate that proof on your device or delegate the computation to a remote prover — you choose under `Settings → Security → Proving mode`.
-3. **Cross-chain swap as a privacy on-ramp.** The Swap tab lets you bring assets in from Bitcoin / Ethereum / Solana / etc. and receive their Aleo-side equivalents (often privacy-shielded). It is one-way *into* Aleo's privacy, not a generic DEX.
+3. **Cross-chain swap as a privacy on-ramp.** The Swap tab lets you bring assets in from the explicit `From` catalogue (`BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, `USDCX`) and receive one of the Aleo-side `To` assets (`ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`). It is one-way *into* Aleo's privacy, not a generic DEX.
 
 ### Is Shield free?
 
@@ -173,7 +173,7 @@ Swap is Shield's cross-chain on-ramp. It takes supported `From` assets from Bitc
 | Swap field | What Shield shows |
 |------------|-------------------|
 | **From assets** | `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, `USDCX` |
-| **From networks** | Bitcoin, Ethereum, Solana, Tron, BSC, Monero, Zcash, Arbitrum, Base, and Aleo where listed |
+| **From networks** | Bitcoin, Ethereum, Solana, Tron, BSC, Monero, Zcash, Arbitrum, Base, and Aleo. See the catalogue below for which asset appears on which network. |
 | **To assets** | `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL` |
 | **To network** | Aleo only |
 

@@ -1,0 +1,23 @@
+{
+  "name": "shield-wallet-docs",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "User and developer documentation for the Aleo Shield wallet — built with Astro + Starlight, deployable to Vercel.",
+  "scripts": {
+    "predev": "node scripts/sync-content.mjs",
+    "prebuild": "node scripts/sync-content.mjs",
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "generate-og": "node scripts/generate-og.mjs",
+    "sync-content": "node scripts/sync-content.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.38.0",
+    "astro": "^6.1.0",
+    "sharp": "^0.33.5"
+  }
+}

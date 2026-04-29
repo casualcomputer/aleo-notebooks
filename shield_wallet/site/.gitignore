@@ -1,0 +1,27 @@
+# Build output
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.production
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Synced content (regenerated from ../USERS.md and ../DEVELOPERS.md by predev/prebuild hooks)
+src/content/docs/users.md
+src/content/docs/developers.md

@@ -123,12 +123,23 @@ The Shield home screen has four primary actions. Here's what each does and when 
 
 Sends a token to another Aleo address. You'll be asked to choose:
 
-- **Token** (ALEO, USDC, USDT, USAD, USDCX, or any other asset Shield supports)
+- **Token** — one of the Aleo-side assets Shield exposes in the wallet:
+  - **Native:** `ALEO`
+  - **Aleo stablecoins:** `USAD`, `USDCX`
+  - **Aleo-side / bridged assets:** `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`
 - **Mode** — public or private:
-  - **Public**: amount, sender, and recipient are visible on the explorer.
+  - **Public**: amount, sender, and recipient are visible on an Aleo explorer.
   - **Private**: nothing is visible to outside observers — not the amount, not who you sent to.
 - **Amount**
 - **Recipient address**
+
+Send is **Aleo-address to Aleo-address**. It does not send BTC to a Bitcoin address, ETH to an Ethereum address, or SOL to a Solana address. Cross-chain movement is handled by the Swap / bridge flow, not by Send.
+
+| Send field | What Shield can use |
+|------------|---------------------|
+| **From** | Your Shield public or private balance for `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, or `WSOL` |
+| **To** | Another Aleo address on the selected Shield network |
+| **Mode** | Public transfer or private transfer |
 
 A private send produces an encrypted record for the recipient and a change record for you. The transaction appears in your Activity as "Sent Privately" with the amount visible only to you.
 
@@ -139,6 +150,11 @@ Shows your Aleo address and a QR code. **Your address is the same for public and
 ### What does the Shield button do?
 
 Tapping `SHIELD` converts a **public** balance into a **private** balance for the same token. The funds stay yours, on the same address — but they move from the visible public ledger into encrypted records.
+
+| Shield action | What changes |
+|---------------|--------------|
+| **From** | Public balance for `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, or `WSOL` |
+| **To** | Private balance for the same asset, on the same Aleo address |
 
 You'll typically use Shield right after:
 
@@ -152,7 +168,14 @@ A Shield action costs a network fee, paid in ALEO. It also requires a zero-knowl
 
 ### What does Swap do?
 
-Swap is Shield's cross-chain on-ramp. It takes assets from external chains (Bitcoin, Ethereum, Solana, Arbitrum, Base, BSC, Tron, Monero, Zcash) and returns Aleo-side assets — often privacy-shielded. Full details in [Cross-chain swaps](#cross-chain-swaps-beta).
+Swap is Shield's cross-chain on-ramp. It takes supported `From` assets from Bitcoin, Ethereum, Solana, Arbitrum, Base, BSC, Tron, Monero, Zcash, and selected Aleo-side assets, then returns a supported `To` asset on Aleo. Full details in [Cross-chain swaps](#cross-chain-swaps-beta).
+
+| Swap field | What Shield shows |
+|------------|-------------------|
+| **From assets** | `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, `USDCX` |
+| **From networks** | Bitcoin, Ethereum, Solana, Tron, BSC, Monero, Zcash, Arbitrum, Base, and Aleo where listed |
+| **To assets** | `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL` |
+| **To network** | Aleo only |
 
 > Swap is currently labelled `BETA` in `Settings → Preferences → Swaps`. You can disable it with that toggle.
 
@@ -191,7 +214,7 @@ Read the swap form left to right:
 | Field | Meaning | Example |
 |-------|---------|---------|
 | **From** | What you pay with, and where that asset starts | `BTC` on Bitcoin, `USDC` on Arbitrum, `SOL` on Solana |
-| **To** | What lands in your Shield wallet on Aleo | `ALEO`, `USDCX`, `ETH` on Aleo, `WBTC` on Aleo |
+| **To** | What lands in your Shield wallet on Aleo | `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL` |
 
 So `BTC → ALEO` means: spend BTC on Bitcoin, receive an Aleo-side asset in Shield. It does **not** mean Shield is a universal bridge from Aleo back out to Bitcoin.
 
@@ -320,7 +343,7 @@ Use Reset wallet only when:
 
 ### What does Show zero balances do?
 
-`Settings → Preferences → Show zero balances` (toggle) controls whether assets you hold zero of show up in your asset list. Off by default to keep the list short; turn on if you want to see the full token universe Shield supports.
+`Settings → Preferences → Show zero balances` (toggle) controls whether assets you hold zero of show up in your asset list. Off by default to keep the list short; turn on if you want to see zero-balance entries for the Aleo-side assets Shield exposes, such as `ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, and `WSOL`.
 
 ### What is Wallet View → Side Panel?
 

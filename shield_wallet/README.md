@@ -40,7 +40,7 @@ flowchart TD
     Balances --> B2["Private balance<br/>(encrypted records)"]
     Balances --> B3["Joined Records<br/>(record consolidation)"]
 
-    Actions --> AC1["Send · public or private"]
+    Actions --> AC1["Send · Aleo address<br/>public or private"]
     Actions --> AC2["Receive · same address for both"]
     Actions --> AC3["Shield · public &rarr; private"]
     Actions --> AC4["Swap · cross-chain on-ramp"]
@@ -51,7 +51,7 @@ flowchart TD
     Security --> S4["Proving keys<br/>download · view"]
     Security --> S5["Reset wallet<br/>(Danger Zone)"]
 
-    Swap --> From["FROM: asset you spend<br/>BTC · ETH · SOL · TRX · BNB<br/>XMR · ZEC · USDC/USDT/WBTC<br/>on Arbitrum · Base · Ethereum<br/>BSC · Solana · Tron"]
+    Swap --> From["FROM: asset you spend<br/>BTC · ETH · SOL · TRX · BNB<br/>XMR · ZEC · USDC · USDT<br/>WBTC · USAD · USDCX<br/>on supported source networks"]
     Swap --> To["TO: asset received on Aleo<br/>ALEO · USAD · USDCX<br/>ETH · USDC · USDT<br/>WBTC · WSOL<br/>(some via Hyperlane)"]
     From -.->|one-way<br/>privacy on-ramp| To
 
@@ -67,7 +67,7 @@ flowchart TD
     class To to;
 ```
 
-The load-bearing fact: **`From` is what you spend; `To` is what arrives on Aleo**. Shield's swap is a one-way privacy on-ramp, not a generic DEX. Bringing assets out of Aleo to other chains is a separate bridge-level operation.
+The load-bearing fact: **Send and Swap have different destinations**. `Send` moves Aleo-side assets (`ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`) from your Shield balance to another Aleo address. `Swap` uses `From` for what you spend and `To` for what arrives on Aleo. Shield's swap is a one-way privacy on-ramp, not a generic DEX.
 
 ---
 

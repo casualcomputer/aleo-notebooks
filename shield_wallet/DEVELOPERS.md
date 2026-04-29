@@ -362,7 +362,7 @@ Two legs:
 1. **Source-chain leg** — a transaction on the selected `From` chain, such as Bitcoin for `BTC`, Ethereum for `ETH`, Solana for `SOL`, Tron for `TRX`, BSC for `BNB`, Monero for `XMR`, Zcash for `ZEC`, or Arbitrum / Base / Ethereum / Solana / Tron / Aleo for supported stablecoin and wrapped-token routes.
 2. **Aleo-side leg** — Hyperlane delivers a message to the Aleo bridge program, which mints the corresponding Aleo-side token to the user's address.
 
-The Aleo-side mint typically lands as a public balance; the user can then `Shield` it to get a private balance.
+The Aleo-side mint typically lands as a **public** balance. Privacy is not automatic at the bridge boundary: the user must run Shield's `SHIELD` action to convert that public Aleo-side balance into private encrypted records. Only after that step do future private Aleo transfers hide the amount and wallet addresses from public explorer view.
 
 User-facing wording matters: `From` is the asset/source chain the user spends, and `To` is the Aleo-side asset Shield receives. A label like `ETH` on the `To` side means ETH represented on Aleo, not ETH sitting in the user's Ethereum wallet.
 

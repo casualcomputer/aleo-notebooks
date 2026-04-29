@@ -10,7 +10,7 @@ keywords:
 
 # Aleo Shield Wallet — Documentation
 
-> **Shield is a self-custodial browser wallet for [Aleo](https://aleo.org).** It holds private keys on the user's device, exposes Aleo's public/private balance model as first-class wallet primitives, and supports swaps from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` *into* Aleo-side assets via Shield's swap flow and, for supported bridged assets, [Hyperlane](https://www.hyperlane.xyz).
+> **Shield is a self-custodial browser wallet for [Aleo](https://aleo.org).** It holds private keys on the user's device, exposes Aleo's public/private balance model as first-class wallet primitives, and supports swaps from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` *into* Aleo-side assets via Shield's swap flow and, for supported bridged assets, [Hyperlane](https://www.hyperlane.xyz). Cross-chain funding typically lands as a public Aleo-side balance first; users tap `SHIELD` to move that balance into private records before future private transfers.
 
 This folder contains two FAQ guides — one for end-users, one for dApp developers — plus a deployable Astro docs site that renders both.
 
@@ -67,7 +67,7 @@ flowchart TD
     class To to;
 ```
 
-The load-bearing fact: **Send and Swap have different destinations**. `Send` moves Aleo-side assets (`ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`) from your Shield balance to another Aleo address. `Swap` uses `From` for what you spend and `To` for what arrives on Aleo. Shield's swap is a one-way privacy on-ramp, not a generic DEX.
+The load-bearing fact: **Send and Swap have different destinations**. `Send` moves Aleo-side assets (`ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`) from your Shield balance to another Aleo address. `Swap` uses `From` for what you spend and `To` for what arrives on Aleo. Shield's swap is a one-way on-ramp into Aleo, not a generic DEX; the received balance normally starts public, then `SHIELD` makes it private.
 
 ---
 

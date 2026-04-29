@@ -1,10 +1,10 @@
 ---
 title: "Aleo Shield Wallet Docs: User FAQ and Developer Integration Guide"
-description: "A polished documentation hub for the Shield browser wallet on Aleo: public vs private balances, cross-chain swaps via Hyperlane, security settings, and dApp integration."
+description: "A polished documentation hub for the Shield browser wallet on Aleo: public vs private balances, shielding cross-chain funds, swaps via Hyperlane, security settings, and dApp integration."
 template: splash
 hero:
   title: "<span class='hero-line'>Aleo Shield</span><span class='hero-line'>Wallet Docs</span>"
-  tagline: "The practical reference for Shield users and Aleo dApp teams: private balances, swaps into Aleo, security settings, wallet adapter behavior, and the current integration gaps."
+  tagline: "The practical reference for Shield users and Aleo dApp teams: funding into Aleo, shielding public balances into private records, security settings, wallet adapter behavior, and integration gaps."
   image:
     html: |
       <div class="shield-visual" aria-hidden="true">
@@ -51,7 +51,7 @@ import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 <section class="trust-strip" aria-label="Documentation scope">
   <span>Verified against Shield v1.18.0</span>
-  <span>Public/private Aleo balances</span>
+  <span>Public balances → Shield → private records</span>
   <span>Hyperlane swap on-ramp</span>
   <span>Wallet adapter notes for dApps</span>
 </section>
@@ -62,7 +62,7 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
   <a class="audience-card" href="/users/">
     <span class="audience-kicker">For wallet users</span>
     <strong>Understand Shield before you move funds.</strong>
-    <span>Public vs private balances, Send/Receive/Shield/Swap, Joined Records, security settings, recovery, and troubleshooting.</span>
+    <span>Funding into Shield, public vs private balances, when to use Shield, Send/Receive/Swap, Joined Records, security settings, recovery, and troubleshooting.</span>
   </a>
   <a class="audience-card" href="/developers/">
     <span class="audience-kicker">For Aleo developers</span>
@@ -90,7 +90,7 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
   <div class="capability-column capability-core">
     <span class="map-label">To: Aleo-side asset received</span>
     <h3>Aleo wallet balance</h3>
-    <p>The <strong>To</strong> side is what arrives in Shield on Aleo. After it lands, users can keep it public or shield it into private records.</p>
+    <p>The <strong>To</strong> side is what arrives in Shield on Aleo. Cross-chain funding usually lands public first; tap <strong>Shield</strong> to create private records.</p>
     <div class="mode-list token-cloud-to">
       <span>ALEO</span>
       <span>USAD</span>
@@ -109,8 +109,8 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
   </div>
   <div class="capability-column">
     <span class="map-label">Use Aleo privacy</span>
-    <h3>Wallet and dApps</h3>
-    <p>Users can send publicly, send privately, receive at the same address, or connect to dApps through the current adapter surface.</p>
+    <h3>Private transfers</h3>
+    <p>After shielding, future Aleo transfers can hide amounts and wallet addresses from public explorer view, while Shield decrypts your records locally.</p>
     <div class="api-list">
       <code>Send</code>
       <code>Shield</code>
@@ -121,7 +121,7 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
 </section>
 
 <div class="callout-note">
-  The important swap detail: <strong>From</strong> means "what you spend"; <strong>To</strong> means "what you receive on Aleo." Hyperlane is the bridge/messaging layer for supported bridged assets. Shield may also rely on swap/quote services for routing, but the user-facing result is still a route into an Aleo-side asset, not a generic every-chain-to-every-chain DEX.
+  The important swap detail: <strong>From</strong> means "what you spend"; <strong>To</strong> means "what you receive on Aleo." The received balance is usually public first. Use <strong>Shield</strong> before future private transfers. Hyperlane is the bridge/messaging layer for supported bridged assets; Shield may also rely on swap/quote services for routing.
 </div>
 
 ## What makes Shield distinct
@@ -129,7 +129,7 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
 <div class="feature-strip">
   <div class="feature">
     <h4>Privacy is a wallet mode</h4>
-    <p>Shield treats Aleo's public and private balance model as a normal wallet experience instead of a specialist workflow.</p>
+    <p>Shield makes the public-to-private step visible: fund into Aleo, shield public balances, then spend privately.</p>
   </div>
   <div class="feature">
     <h4>Proving is configurable</h4>
@@ -145,7 +145,7 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
 
 <CardGrid>
   <Card title="User FAQ" icon="open-book">
-    The four home buttons, public vs private balances, Joined Records, cross-chain swap From/To catalogue, security toggles, recovery, and troubleshooting.
+    The four home buttons, cross-chain funding, when to use Shield, public vs private balances, Joined Records, swap From/To catalogue, security toggles, recovery, and troubleshooting.
 
     [Read the user guide →](/users/)
   </Card>
@@ -162,12 +162,12 @@ Shield is a self-custodial browser wallet for [Aleo](https://aleo.org), the zero
   <LinkCard
     title="What is the Shield wallet for Aleo?"
     href="/users/#what-is-the-shield-wallet-for-aleo"
-    description="Self-custodial browser extension; private balances are first-class."
+    description="Self-custodial browser extension; use Shield to turn public balances into private records."
   />
   <LinkCard
     title="Public vs private balances explained"
     href="/users/#public-vs-private-balances"
-    description="Why every asset shows two numbers and which one the explorer can see."
+    description="Why every asset shows two numbers, why cross-chain funding starts public, and when to shield."
   />
   <LinkCard
     title="Cross-chain swap From / To catalogue"

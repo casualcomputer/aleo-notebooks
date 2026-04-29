@@ -1,6 +1,6 @@
 ---
 title: "Aleo Shield Wallet: Complete User Guide & FAQ (2026)"
-description: "How to use the Shield browser wallet for Aleo: public vs private balances, sending tokens privately, cross-chain swaps via Hyperlane, and security settings."
+description: "How to use the Shield browser wallet for Aleo: public vs private balances, shielding assets into private records, cross-chain swaps via Hyperlane, and security settings."
 keywords:
   - aleo
   - shield wallet
@@ -59,9 +59,9 @@ This guide answers the questions that come up in the first hour of using Shield.
 
 ### What is the Shield wallet for Aleo?
 
-Shield is a browser-extension wallet for [Aleo](https://aleo.org), the zero-knowledge L1 blockchain. It stores your private key on your device, signs transactions locally, and lets you send tokens **publicly** (visible on an Aleo explorer) or **privately** (encrypted on-chain — only you can see them). It also supports cross-chain swaps from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` *into* Aleo-side assets.
+Shield is a browser-extension wallet for [Aleo](https://aleo.org), the zero-knowledge L1 blockchain. It stores your private key on your device, signs transactions locally, and lets you hold assets in two modes: **public** (visible on an Aleo explorer) or **private** (encrypted records that only the holder can decrypt). If you fund Shield from another chain, such as bringing in USDC through Swap, the first Aleo-side balance typically lands as **public**. Use the **Shield** action to convert that public balance into private records; after that, private Aleo transfers hide the amount and wallet addresses from public explorer view. Shield also supports cross-chain swaps from `BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, and `USDCX` *into* Aleo-side assets.
 
-Think of Shield as **MetaMask for a chain that defaults to private**.
+Think of Shield as **MetaMask for a chain with built-in private mode**.
 
 ### Is Shield self-custodial?
 
@@ -71,9 +71,9 @@ Yes. Your private key is generated on your device and stored encrypted in the br
 
 Three things:
 
-1. **Two balances per asset.** Every token has a *public* balance and a *private* balance. You can move between them with one tap. MetaMask and Phantom have one balance per asset; on Aleo, "private" is a first-class concept built into the chain.
+1. **Two balances per asset.** Every token has a *public* balance and a *private* balance. Cross-chain funding and many incoming transfers start public; tap `SHIELD` to move that public balance into private records. MetaMask and Phantom have one balance per asset; on Aleo, "private" is a first-class concept built into the chain.
 2. **Local proof generation (or delegated).** Aleo transactions include a zero-knowledge proof: a cryptographic receipt that proves the transaction followed the program rules without revealing private details. Shield can generate that proof on your device or delegate the computation to a remote prover — you choose under `Settings → Security → Proving mode`.
-3. **Cross-chain swap as a privacy on-ramp.** The Swap tab lets you bring assets in from the explicit `From` catalogue (`BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, `USDCX`) and receive one of the Aleo-side `To` assets (`ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`). It is one-way *into* Aleo's privacy, not a generic DEX.
+3. **Cross-chain swap as a privacy on-ramp.** The Swap tab lets you bring assets in from the explicit `From` catalogue (`BTC`, `ETH`, `SOL`, `TRX`, `BNB`, `XMR`, `ZEC`, `USDC`, `USDT`, `WBTC`, `USAD`, `USDCX`) and receive one of the Aleo-side `To` assets (`ALEO`, `USAD`, `USDCX`, `USDC`, `USDT`, `ETH`, `WBTC`, `WSOL`). It is one-way *into* Aleo, then you use `SHIELD` if you want the received balance to become private.
 
 ### Is Shield free?
 
@@ -89,8 +89,8 @@ Installing and using Shield costs nothing. You pay normal Aleo network fees on t
 
 On the Shield home screen, the total balance card breaks down into:
 
-- **Public** — visible on the Aleo explorer. Anyone can see the amount and the address that holds it. Behaves like a normal ERC-20 balance.
-- **Private** — encrypted on-chain. Only you (with your view key) can decrypt it. To outside observers, the balance does not exist.
+- **Public** — visible on the Aleo explorer. Anyone can see the amount and the address that holds it. This is where cross-chain funding usually starts.
+- **Private** — encrypted records on-chain. Only you (with your view key) can decrypt them. To outside observers, the asset, amount, and wallet addresses involved in future private transfers are not publicly readable.
 
 Both balances belong to the same address. They are not separate accounts — they are two storage modes of the same token.
 
@@ -98,10 +98,12 @@ Both balances belong to the same address. They are not separate accounts — the
 
 It depends on how the funds got there:
 
-- Funds from a **faucet**, a **public transfer**, or a **public swap** arrive as public.
+- Funds from a **faucet**, a **public transfer**, or a **cross-chain swap into Shield** arrive as public unless the confirmation screen explicitly says otherwise.
 - Funds from a **private transfer** ("Received Privately" in your Activity log) arrive as private.
 - When *you* tap the **Shield** action, you convert public → private.
 - When you send privately, the change comes back as a private record.
+
+Practical flow: if you bring in USDC from Ethereum, Arbitrum, Base, or another supported source chain, expect the first Aleo-side USDC balance to be public. Tap `SHIELD` for that asset before sending it onward privately.
 
 ### Can someone see my private balance on the Aleo explorer?
 
@@ -149,7 +151,7 @@ Shows your Aleo address and a QR code. **Your address is the same for public and
 
 ### What does the Shield button do?
 
-Tapping `SHIELD` converts a **public** balance into a **private** balance for the same token. The funds stay yours, on the same address — but they move from the visible public ledger into encrypted records.
+Tapping `SHIELD` converts a **public** balance into a **private** balance for the same token. The funds stay yours, on the same address — but they move from the visible public ledger into encrypted records. This is the step that makes future Aleo transfers private.
 
 | Shield action | What changes |
 |---------------|--------------|
@@ -159,7 +161,7 @@ Tapping `SHIELD` converts a **public** balance into a **private** balance for th
 You'll typically use Shield right after:
 
 - Receiving funds from a centralized exchange (which can only send public)
-- Receiving the output of a swap (most chains' swap legs land as public)
+- Receiving the output of a cross-chain swap or bridge route, such as USDC brought in from another chain
 - Withdrawing from a faucet
 
 The reverse (private → public) is sometimes called "unshielding" and is done via the Send flow with mode set to public.
@@ -218,6 +220,13 @@ Read the swap form left to right:
 
 So `BTC → ALEO` means: spend BTC on Bitcoin, receive an Aleo-side asset in Shield. It does **not** mean Shield is a universal bridge from Aleo back out to Bitcoin.
 
+The received Aleo-side balance is usually public at first. For privacy, the flow is:
+
+1. Swap or bridge into Shield.
+2. Confirm the Aleo-side balance appears under **Public**.
+3. Tap `SHIELD` for that asset to create a **Private** balance.
+4. Send privately on Aleo from the private balance.
+
 ### What chains and tokens can I swap from?
 
 The `From` side is the source of funds. Most entries are external-chain assets; some stablecoin/bridged-token entries may also list Aleo-side versions if Shield exposes them in the picker.
@@ -274,7 +283,9 @@ Slippage is how much the swap rate is allowed to move between when you confirm a
 
 ### Are swaps fully private?
 
-Partial. The **Aleo-side leg** of the swap can land in a private balance (use the Shield action right after if it doesn't). But the **source-chain leg** is public on its source chain — a Bitcoin → ALEO swap will leave a Bitcoin transaction on the Bitcoin mempool that anyone can see.
+No, not by themselves. The **source-chain leg** is visible on its source chain — a Bitcoin → ALEO swap leaves a Bitcoin transaction on the Bitcoin mempool that anyone can see. The **Aleo-side leg** typically lands as a public Shield balance first, then you tap `SHIELD` to move it into private encrypted records.
+
+After shielding, future private transfers happen on Aleo and the public explorer cannot read the transferred amount or the wallet addresses involved in that private transfer. Shield can show them to you because it decrypts your records locally with your view key.
 
 If full source-chain privacy matters, start from a privacy chain (XMR, ZEC) on the From side.
 

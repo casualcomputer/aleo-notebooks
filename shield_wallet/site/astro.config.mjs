@@ -5,7 +5,7 @@ import starlight from "@astrojs/starlight";
 export default defineConfig({
   // Replace with the production Vercel URL once known. Used to generate
   // sitemap.xml and absolute canonical/OpenGraph URLs.
-  site: "https://shield-wallet-docs.vercel.app",
+  site: "https://shieldwallet.vercel.app",
 
   integrations: [
     starlight({
